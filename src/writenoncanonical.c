@@ -11,31 +11,46 @@
 #define _POSIX_SOURCE 1 /* POSIX compliant source */
 #define FALSE 0
 #define TRUE 1
-#define FLAG 0b01111110
-#define A 0b00000011
-#define C 0b00000011
-#define BCC A^C
+#define FLAG 0x7e
+#define A 0x03
+#define C 0x03
+
 #define SIZE 255
+
+#define TRANSMITTER 0
+#define RECEIVER 1
 
 volatile int STOP=FALSE;
 
-int llopen(int *fd, char *b){
-  *fd = open(b, O_RDWR | O_NOCTTY );
-  if (*fd <0) {perror(argv[1]); exit(-1); }
+int llopen(int porta, int flag){
+  
+  int fd;
+  if(flag == TRANSMITTER){
+    fd = open(porta, O_RDWR | O_NOCTTY );
+    if (fd <0) {perror(porta); return -1; }
+  }
+  else if(flag == RECEIVER){
+    fd = open(porta, O_RDWR | O_NOCTTY );
+    if (fd <0) {perror(porta); return -1; }
+  }
+
+  return fd;
 
 }
 
 int llwrite(int fd, char * buffer, int length){
-  int res = 0;
+  int res = -1;
   res = write(fd, buffer, length);
 
   return res;
 }
 
 int llread(int fd, char * buffer){
-  int res = 0;
-  res = read(fd,buffer,SIZE);
-  return res;
+
+}
+
+int llclose(int fd){
+  return close(fd);
 }
 
 
@@ -44,8 +59,8 @@ int main(int argc, char** argv)
 {
     int fd,c, res;
     struct termios oldtio,newtio;
-    unsigned char frame[SIZE];
-    int i, sum = 0, speed = 0;
+    char buf[SIZE];
+    unsigned char SET[5];
 
     if ( (argc < 2) ||
   	     ((strcmp("/dev/ttyS0", argv[1])!=0) &&
@@ -60,8 +75,11 @@ int main(int argc, char** argv)
     because we don't want to get killed if linenoise sends CTRL-C.
   */
 
-
-    llopen(&fd, argv[1]);
+    fd = llopen(argv[1], TRANSMITTER);
+    if(fd < 0){
+      printf("Error llopen\n");
+      exit(1);
+    }
 
     if ( tcgetattr(fd,&oldtio) == -1) { /* save current port settings */
       perror("tcgetattr");
@@ -98,25 +116,32 @@ int main(int argc, char** argv)
     printf("New termios structure set\n");
 
 
+    SET[0] = FLAG;
+    SET[1] = A;
+    SET[2] = C;
+    SET[3] = A^C;
+    SET[4] = FLAG;
+
+    if(llwrite(fd, SET, 5) < 0){
+      printf("Error llwrite\n");
+      exit(1);
+    }
+
+    gets(buf);
+
+    buf[strlen(buf)] = '\0';
+    
+    res = write(fd,buf,strlen(buf)+1);   
     printf("%d bytes written\n", res);
-
-
-  /*
-    O ciclo FOR e as instru��es seguintes devem ser alterados de modo a respeitar
-    o indicado no gui�o
-  */
-
-
-
 
     if ( tcsetattr(fd,TCSANOW,&oldtio) == -1) {
       perror("tcsetattr");
       exit(-1);
     }
 
-
-
-
-    close(fd);
+    if(llclose(fd) != 0){
+      printf("Error llclose\n");
+      exit(1);
+    }
     return 0;
 }
