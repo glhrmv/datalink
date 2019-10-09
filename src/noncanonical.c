@@ -18,12 +18,21 @@
 #define FLAG 0x7e  // Flag Delimiter
 #define A 0x01     // Receiver Adress Field Headr
 
+//State machine
+#define START     0
+#define FLAG_RCV  1
+#define A_RCV     2
+#define C_RCV     3
+#define BCC_OK    4
+#define STOP      5
+#define Other_RCV 6
+
 // Control Field Messages
 #define SET 0x03   // SET (set up)
 #define DISC 0x0B  // DISC (disconnect)
-#define UA 0x07    // UA (Unnumbered acknowledgement)
+//#define UA 0x07    // UA (Unnumbered acknowledgement)
 
-volatile int STOP = FALSE;
+volatile int STOP_ = FALSE;
 struct termios oldtio, newtio;
 
 int llopen(int port, char f) {
@@ -65,7 +74,7 @@ int llopen(int port, char f) {
 int llread(int fd, char * buffer){
   int state = 0;
   char flag1, flag2, a, c;
-  while(true)
+  while(TRUE)
   {
     switch (state) {
       //START*******************************
@@ -110,7 +119,7 @@ int llread(int fd, char * buffer){
       case C_RCV:
       if(read(fd, buffer, 1))
       {
-        if(a^b == buffer[0])
+        if(a^c == buffer[0])
           state = BCC_OK;
         else
         if(buffer[0] == FLAG)
@@ -142,14 +151,21 @@ int llread(int fd, char * buffer){
         break;
 
       //default********************************
-      case default:
+      default:
       return 1;
     }
   }
 }
 
 
-int llclose(int port) { return close(port); }
+int llclose(int fd) { 
+  if ( tcsetattr(fd,TCSANOW,&oldtio) == -1) {
+      perror("tcsetattr");
+      return -1;
+  }
+
+  return close(fd); 
+}
 
 int main(int argc, char **argv) {
   if ((argc < 2) || ((strcmp("/dev/ttyS0", argv[1]) != 0) &&
@@ -158,6 +174,11 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
+  unsigned char UA[5];
+  unsigned char frame[SIZE];
+  char buf[SIZE];
+  int res;
+
   // Registo
 
   /*
@@ -165,18 +186,35 @@ int main(int argc, char **argv) {
      tty because we don't want to get killed if linenoise sends CTRL-C.
   */
 
-  int port = llopen(argv[1], RECEIVER);
-  if (port < 0) {
+  int fd = llopen(argv[1], RECEIVER);
+  if (fd < 0) {
     perror(argv[1]);
     exit(-1);
   }
 
   printf("New termios structure set\n");
 
-  unsigned char frame[SIZE];
-  llread(port, frame);
+  if(llread(fd, frame) != 0){
+    perror("llread\n");
+    exit(1);
+  }
 
-  llclose(port);
+  if(llwrite(fd, UA, 5) < 0){
+    perror("llwrite");
+    exit(1);
+  }
+
+  while (STOP_==FALSE) {       /* loop for input */
+      res = read(fd,buf,255);   /* returns after 5 chars have been input */
+      buf[res]=0;               /* so we can printf... */
+      printf(":%s:%d\n", buf, res);
+      if (buf[0]=='z') STOP_=TRUE;
+    }
+
+  if(llclose(fd) != 0){
+    perror("llclose\n");
+    exit(1);
+  }
 
   return 0;
 }

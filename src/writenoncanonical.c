@@ -17,7 +17,6 @@
 #define N 5
 
 //State machine
-
 #define START     0
 #define FLAG_RCV  1
 #define A_RCV     2
@@ -31,7 +30,7 @@
 #define TRANSMITTER 0
 #define RECEIVER 1
 
-volatile int STOP=FALSE;
+volatile int STOP_=FALSE;
 
 
 struct termios oldtio,newtio;
@@ -81,32 +80,33 @@ int llwrite(int fd, char * buffer, int length){
 int llread(int fd, char * buffer){
   int state = 0;
   char flag1, flag2, a, c;
-  while(true)
+  while(TRUE)
   {
     switch (state) {
+
       //START*******************************
       case START:
-      if(read(fd, &flag1, 1))
-      {
-        if(flag1 == FLAG)
-          state = FLAG_RCV;
-      }
-      else
-      state = Other_RCV;
-      break;
+        if(read(fd, &flag1, 1))
+        {
+          if(flag1 == FLAG)
+            state = FLAG_RCV;
+        }
+        else
+          state = Other_RCV;
+        break;
 
       //FLAG_RCV****************************
       case FLAG_RCV:
-      if(read(fd, &a, 1))
-      {
-        if(a == FLAG)
-          state = FLAG_RCV;
+        if(read(fd, &a, 1))
+        {
+          if(a == FLAG)
+            state = FLAG_RCV;
+          else
+          state = A_RCV;
+        }
         else
-        state = A_RCV;
-      }
-      else
-      state = Other_RCV;
-      break;
+          state = Other_RCV;
+        break;
 
       //A_RCV*******************************
       case A_RCV:
@@ -124,28 +124,28 @@ int llread(int fd, char * buffer){
 
       //C_RCV********************************
       case C_RCV:
-      if(read(fd, buffer, 1))
-      {
-        if(a^b == buffer[0])
-          state = BCC_OK;
+        if(read(fd, buffer, 1))
+        {
+          if(a^c == buffer[0])
+            state = BCC_OK;
+          else
+          if(buffer[0] == FLAG)
+            state = FLAG_RCV;
+        }
         else
-        if(buffer[0] == FLAG)
-          state = FLAG_RCV;
-      }
-      else
-      state = Other_RCV;
-      break;
+          state = Other_RCV;
+        break;
 
       //BCC_OK********************************
       case BCC_OK:
-      if(read(fd, &flag2, 1))
-      {
-        if(flag2 == FLAG)
-          state = STOP;
-      }
-      else
-      state = Other_RCV;
-      break;
+        if(read(fd, &flag2, 1))
+        {
+          if(flag2 == FLAG)
+            state = STOP;
+        }
+        else
+          state = Other_RCV;
+        break;
 
       //STOP***********************************
       case STOP:
@@ -158,17 +158,25 @@ int llread(int fd, char * buffer){
         break;
 
       //default********************************
-      case default:
+      default:
       return 1;
     }
   }
+}
+
+int close(int fd){
+  if ( tcsetattr(fd,TCSANOW,&oldtio) == -1) {
+      perror("tcsetattr");
+      return -1;
+  }
+  
+  return close(fd);
 }
 
 
 int main(int argc, char** argv)
 {
     int fd,c, res;
-    struct termios oldtio,newtio;
     char buf[SIZE];
     unsigned char SET[N];
 
@@ -205,7 +213,7 @@ int main(int argc, char** argv)
       exit(1);
     }
 
-    if(llread(fd, buf)) != 0){
+    if(llread(fd, buf) != 0){
       printf("Error llread\n");
       exit(1);
     }
@@ -217,10 +225,7 @@ int main(int argc, char** argv)
     res = write(fd,buf,strlen(buf)+1);
     printf("%d bytes written\n", res);
 
-    if ( tcsetattr(fd,TCSANOW,&oldtio) == -1) {
-      perror("tcsetattr");
-      exit(-1);
-    }
+    
 
     if(llclose(fd) != 0){
       printf("Error llclose\n");
