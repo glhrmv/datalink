@@ -62,22 +62,92 @@ int llopen(int port, char f) {
   return fd;
 }
 
-int llread(int port, unsigned char **frame) {
-  int res;
+int llread(int fd, char * buffer){
+  int state = 0;
+  char flag1, flag2, a, c;
+  while(true)
+  {
+    switch (state) {
+      //START*******************************
+      case START:
+      if(read(fd, &flag1, 1))
+      {
+        if(flag1 == FLAG)
+          state = FLAG_RCV;
+      }
+      else
+      state = Other_RCV;
+      break;
 
-  // loop for input
-  while (STOP == FALSE) {
-    res = read(port, frame, 255);
+      //FLAG_RCV****************************
+      case FLAG_RCV:
+      if(read(fd, &a, 1))
+      {
+        if(a == FLAG)
+          state = FLAG_RCV;
+        else
+        state = A_RCV;
+      }
+      else
+      state = Other_RCV;
+      break;
 
-    // so we can printf...
-    frame[res] = 0;
-    printf(":%s:%d\n", frame, res);
+      //A_RCV*******************************
+      case A_RCV:
+      if(read(fd, &c, 1))
+      {
+        if(c == FLAG)
+          state  = FLAG_RCV;
+        else
+        state = C_RCV;
+      }
+      else
+      state = Other_RCV;
+      break;
 
-    if (frame[0] == 'z') STOP = TRUE;
+
+      //C_RCV********************************
+      case C_RCV:
+      if(read(fd, buffer, 1))
+      {
+        if(a^b == buffer[0])
+          state = BCC_OK;
+        else
+        if(buffer[0] == FLAG)
+          state = FLAG_RCV;
+      }
+      else
+      state = Other_RCV;
+      break;
+
+      //BCC_OK********************************
+      case BCC_OK:
+      if(read(fd, &flag2, 1))
+      {
+        if(flag2 == FLAG)
+          state = STOP;
+      }
+      else
+      state = Other_RCV;
+      break;
+
+      //STOP***********************************
+      case STOP:
+        return 0;
+
+
+      //Other_RCV******************************
+      case Other_RCV:
+        state = START;
+        break;
+
+      //default********************************
+      case default:
+      return 1;
+    }
   }
-
-  tcsetattr(port, TCSANOW, &oldtio);
 }
+
 
 int llclose(int port) { return close(port); }
 
