@@ -1,20 +1,23 @@
-#include <termios.h>
+/**
+ * @file datalink.c
+ * @brief The datalink program starting point
+ * 
+ */
 
-#include "conn_mode.h"
-#include "util.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
-int llopen(conn_mode mode) {
+#include "ll.h"
 
-}
+int main(int argc, char **argv) {
+  if ((argc < 2) || ((strcmp("/dev/ttyS0", argv[1]) != 0) &&
+                     (strcmp("/dev/ttyS1", argv[1]) != 0))) {
+    printf("Usage:\tnserial SerialPort\n\tex: nserial /dev/ttyS1\n");
+    exit(1);
+  }
 
-int llwrite(int fd, const unsigned char* buf, unsigned int buf_size) {
+  printf("hello world\n");
 
-}
-
-int llread(int fd, unsigned char** msg) {
-
-}
-
-int llclose(int fd, conn_mode mode) {
-
+  return 0;
 }
