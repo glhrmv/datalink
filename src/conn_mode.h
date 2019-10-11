@@ -1,16 +1,11 @@
 /**
  * @file conn_mode.h
  * @brief Connection mode enum definition
- * 
+ *
  */
 
-/**
- * @brief Connection mode enum
- * 
- * SEND is to be used by the sender.
- * RECEIVE is to be used by the receiver.
- * 
- */
+/// Connection mode type
 typedef enum conn_mode {
-	SEND, RECEIVE
+  SEND,   ///< To be used by the sender
+  RECEIVE ///< To be used by the receiver
 } conn_mode;
