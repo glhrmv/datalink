@@ -56,10 +56,10 @@ typedef struct msg {
 /**
  * @brief Establish a serial port connection
  * 
- * @param mode Connection mode
+ * @param cm Connection mode
  * @return int File descriptor for the serial port, 0 on error
  */
-int llopen(conn_mode mode);
+int llopen(conn_mode cm);
 
 /**
  * @brief Writes a message through the serial port
@@ -87,4 +87,4 @@ int llread(int fd, unsigned char** msg);
  * @param mode Connection mode
  * @return int 0 if successful, error otherwise
  */
-int llclose(int fd, conn_mode mode);
+int llclose(int fd, conn_mode cm);
