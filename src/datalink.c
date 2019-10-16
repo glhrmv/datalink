@@ -4,23 +4,29 @@
  *
  */
 
-#include <stdio.h>
 #include <signal.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "config.h"
 #include "util.h"
-#include "ll.h"
 
-conn_mode get_conn_mode(const char *cm) {
+void set_program_config(config *config, const char *cm,
+                        const char *port_number) {
   if (strcmp(cm, "send") == 0)
-    return SEND;
+    config->cm = SEND;
   else if (strcmp(cm, "receive") == 0)
-    return RECEIVE;
-  
-  printf("Invalid connection mode. Must be 'send' or 'receive'\n");
+    config->cm = RECEIVE;
+  else {
+    printf("Invalid connection mode. Must be 'send' or 'receive'\n");
+    exit(1);
+  }
 
-  return 1;
+  // TODO: Set config->fd to the file descriptor of "/dev/ttySx", x= port_number
+
+  // TODO: If sender, prompt user for filename,
+  //       check if it exists, and set config->filename to it
 }
 
 int main(int argc, char **argv) {
@@ -29,7 +35,13 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  conn_mode cm = get_conn_mode(argv[1]);
+  config *config;
+  set_program_config(config, argv[1], argv[2]);
+  return run(config);
+}
+
+int run(config *config) {
+  // TODO: Program logic
 
   return 0;
 }
