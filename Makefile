@@ -15,12 +15,13 @@ OBJS := $(SRCS:.c=.o)
 DEPS := $(OBJS:.o=.d)
 
 # Output binary folder
-OUT = bin/
+OUT = bin
 
 # Called when you run 'make'. This calls the line below.
 all: $(PROG)
 
 $(PROG): $(OBJS)
+	mkdir -p $(OUT)
 	gcc $(CFLAGS) $(OBJS) -o $(OUT)/$(PROG)
 
 # Includes the dependency lists (.d files).
