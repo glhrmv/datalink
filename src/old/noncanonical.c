@@ -5,18 +5,25 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <termios.h>
+#include <signal.h>
 
 #define BAUDRATE B38400
 #define _POSIX_SOURCE 1 /* POSIX compliant source */
 #define FALSE 0
 #define TRUE 1
 
-#define TRANSMITTER 0
-#define RECEIVER 1
-
 #define SIZE 255   // Frame size
+
 #define FLAG 0x7e  // Flag Delimiter
-#define A 0x01     // Receiver Adress Field Headr
+#define A 0x03     // Receiver Adress Field Headr
+
+// Control field messages
+#define C_SET 0x03    // Valor do SET
+#define C_UA 0x07
+#define C_DISC 0x0b
+
+
+#define N 5       // Tamanho da trama I
 
 //State machine
 #define START     0
@@ -27,24 +34,14 @@
 #define STOP      5
 #define Other_RCV 6
 
-// Control Field Messages
-#define SET 0x03   // SET (set up)
-#define DISC 0x0B  // DISC (disconnect)
-//#define UA 0x07    // UA (Unnumbered acknowledgement)
-
 volatile int STOP_ = FALSE;
 struct termios oldtio, newtio;
 
-int llopen(int port, char f) {
-  int fd;
+int llopen(char* port) {
+    int fd;
+    char buffer[N];
+    unsigned char UA[N];
 
-  if (f == TRANSMITTER) {
-    // Transmitter code
-    fd = open(port, O_RDWR | O_NOCTTY);
-    if (fd < 0) return -1;
-
-
-  } else {
     // Receiver code
     fd = open(port, O_RDWR | O_NOCTTY);
     if (fd < 0) return -1;
@@ -66,95 +63,100 @@ int llopen(int port, char f) {
 
     tcflush(fd, TCIFLUSH);
     tcsetattr(fd, TCSANOW, &newtio);
-  }
 
-  return fd;
+    read(fd, buffer, N);
+
+    if(stateMachine(buffer) != 0){
+      exit(-1);
+    }
+
+    UA[0] = FLAG;
+    UA[1] = A;
+    UA[2] = C_UA;
+    UA[3] = A^C_UA;
+    UA[4] = FLAG;
+
+    write(fd, UA, N);
+
+    return fd;
 }
 
 int llread(int fd, char * buffer){
+
+}
+
+int stateMachine(char* buffer) {
   int state = 0;
-  char flag1, flag2, a, c;
+  char flag1, flag2, a, c, bcc;
+
+  flag1 = buffer[0];
+  a = buffer[1];
+  c = buffer[2];
+  bcc = buffer[3];
+  flag2 = buffer[4];
+  
   while(TRUE)
   {
     switch (state) {
       //START*******************************
       case START:
-      if(read(fd, &flag1, 1))
-      {
         if(flag1 == FLAG)
           state = FLAG_RCV;
-      }
-      else
-      state = Other_RCV;
+        else
+          state = START;
       break;
 
       //FLAG_RCV****************************
       case FLAG_RCV:
-      if(read(fd, &a, 1))
-      {
         if(a == FLAG)
           state = FLAG_RCV;
+        else if(a == A)
+          state = A_RCV;
         else
-        state = A_RCV;
-      }
-      else
-      state = Other_RCV;
+          state = START;
       break;
 
       //A_RCV*******************************
       case A_RCV:
-      if(read(fd, &c, 1))
-      {
         if(c == FLAG)
           state  = FLAG_RCV;
+        else if(c == C_SET)
+          state = C_RCV;
         else
-        state = C_RCV;
-      }
-      else
-      state = Other_RCV;
+          state = START;
       break;
-
 
       //C_RCV********************************
       case C_RCV:
-      if(read(fd, buffer, 1))
-      {
-        if(a^c == buffer[0])
+        if(a^c == bcc)
           state = BCC_OK;
-        else
-        if(buffer[0] == FLAG)
+        else if(a^c == FLAG)
           state = FLAG_RCV;
-      }
-      else
-      state = Other_RCV;
+        else
+          state = START;
       break;
 
       //BCC_OK********************************
       case BCC_OK:
-      if(read(fd, &flag2, 1))
-      {
         if(flag2 == FLAG)
           state = STOP;
-      }
-      else
-      state = Other_RCV;
+        else
+         state = START;
       break;
 
       //STOP***********************************
       case STOP:
         return 0;
 
-
-      //Other_RCV******************************
-      case Other_RCV:
-        state = START;
-        break;
-
       //default********************************
       default:
-      return 1;
+        return 1;
     }
   }
+}
+
+int llwrite(int fd, char* buffer, int length) {
+  
 }
 
 
@@ -168,19 +170,19 @@ int llclose(int fd) {
 }
 
 int main(int argc, char **argv) {
-  unsigned char UA[5];
+  if ((argc < 2) || ((strcmp("/dev/ttyS2", argv[1]) != 0) &&
+                     (strcmp("/dev/ttyS1", argv[1]) != 0))) {
+    printf("Usage:\tnserial SerialPort\n\tex: nserial /dev/ttyS1\n");
+    exit(1);
+  }
+
+  unsigned char UA[N];
   unsigned char frame[SIZE];
   char buf[SIZE];
   int res;
 
-  // Registo
 
-  /*
-          Open serial port device for reading and writing and not as controlling
-     tty because we don't want to get killed if linenoise sends CTRL-C.
-  */
-
-  int fd = llopen(argv[1], RECEIVER);
+  int fd = llopen(argv[1]);
   if (fd < 0) {
     perror(argv[1]);
     exit(-1);
@@ -193,17 +195,28 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
-  if(llwrite(fd, UA, 5) < 0){
+  printf("Read trama I from writer\n");
+
+
+  if(llwrite(fd, UA, N) < 0){
     perror("llwrite");
     exit(1);
   }
+
+  printf("Returnded confirmation for writer\n");
+
+
 
   while (STOP_==FALSE) {       /* loop for input */
       res = read(fd,buf,255);   /* returns after 5 chars have been input */
       buf[res]=0;               /* so we can printf... */
       printf(":%s:%d\n", buf, res);
-      if (buf[0]=='z') STOP_=TRUE;
+      if (buf[res]=='\0') STOP_=TRUE;
     }
+
+
+
+
 
   if(llclose(fd) != 0){
     perror("llclose\n");
