@@ -4,7 +4,9 @@
  *
  */
 
-/// Connection mode type
+#pragma once
+
+/// Connection mode enum
 typedef enum conn_mode {
   SEND,   ///< To be used by the sender
   RECEIVE ///< To be used by the receiver
