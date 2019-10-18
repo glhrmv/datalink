@@ -2,24 +2,9 @@
 
 #include <termios.h>
 
+#include "util.h"
 #include "conn_mode.h"
 #include "config.h"
-
-
-
-
-typedef struct {
-	char port[20]; /*Dispositivo /dev/ttySx, x = 0, 1*/
-	int baudRate; /*Velocidade de transmissão*/
-	unsigned int sequenceNumber; /*Número de sequência da trama: 0, 1*/
-	unsigned int timeout; /*Valor do temporizador: 1 s*/
-	unsigned int numTransmissions; /*Número de tentativas em caso de falha*/
-	char frame[MAX_SIZE]; /*Trama*/
-	int messageDataMaxSize;
-} LinkLayer;
-
-extern LinkLayer* ll;
-
 
 typedef enum state {
 	START, 
@@ -70,6 +55,21 @@ typedef struct msg {
 	msg_err err;
 } msg;
 
+typedef struct link_layer {
+	char port[20]; /*Dispositivo /dev/ttySx, x = 0, 1*/
+
+	int baudRate; /*Velocidade de transmissão*/
+	unsigned int sequenceNumber; /*Número de sequência da trama: 0, 1*/
+	unsigned int timeout; /*Valor do temporizador: 1 s*/
+	unsigned int numTransmissions; /*Número de tentativas em caso de falha*/
+
+	char frame[MAX_SIZE]; /*Trama*/
+
+	int messageDataMaxSize;
+} link_layer;
+
+extern link_layer* ll;
+
 /**
  * @brief Establish a serial port connection
  * 
@@ -114,7 +114,6 @@ int llclose(int fd, conn_mode cm);
 */
 int initLinkLayer(const char* port, int baudRate,
 		int messageDataMaxSize, int numTransmissions, int timeout);
-
 
 /**
  * @brief Create command to send
