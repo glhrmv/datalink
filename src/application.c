@@ -1,6 +1,10 @@
 /**
- * @file datalink.c
- * @brief The datalink program starting point
+ * @file application.c
+ * @brief The datalink program application layer source file
+ *
+ * This is the application layer of the project.
+ * 
+ * It is also the starting point of the built program.
  *
  */
 
@@ -12,9 +16,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#include "config.h"
-#include "link_layer.h"
-#include "util.h"
+#include "application.h"
 
 void set_config(config_t *config, const char **argv) {
   // Set the connection mode
@@ -28,17 +30,17 @@ void set_config(config_t *config, const char **argv) {
   }
 
   // Build the serial port file name from the port number given
-  char fname[64];
-  sprintf(fname, "/dev/ttys%s", argv[2]);
+  char str[64];
+  sprintf(str, "/dev/ttys%s", argv[2]);
 
   // Check if serial port exists
-  if (!file_exists(fname)) {
-    printf("Invalid port number given. Serial port does not exist.\n");
+  if (!file_exists(str)) {
+    printf("Invalid port number given. Serial port %s does not exist.\n", str);
     exit(1);
   }
 
   // Set the serial port file descriptor
-  config->fd = open(fname, O_RDWR | O_NOCTTY);
+  config->fd = open(str, O_RDWR | O_NOCTTY);
 
   // If receiving, we're done setting the config
   if (config->cm == RECEIVE)
@@ -46,12 +48,12 @@ void set_config(config_t *config, const char **argv) {
 
   // Prompt user for filename of file to be sent
   printf("Name of file to send ? ");
-  char str[64];
+  memset(str, 0, sizeof(str));
   scanf("%[^\n]%*c", str);
 
   // Check if file exists
   if (!file_exists(str)) {
-    printf("Invalid file name given. File does not exist.\n");
+    printf("Invalid file name given. File %s does not exist.\n", str);
     exit(1);
   }
 
@@ -61,17 +63,35 @@ void set_config(config_t *config, const char **argv) {
 
 int run(const config_t *config) {
   // Set the data link layer struct
-  link_layer_t *ll;
-  set_link_layer(ll, config);
+  link_layer_t *ll = (link_layer_t*) malloc(sizeof(link_layer_t));
+  set_link_layer(ll, config->fd, config->cm);
 
-  llopen(ll);
+  // Establish connection
+  if (llopen(ll) < 0)
+    return 0;
 
+  // Perform transfer
   if (config->cm == SEND)
-    llwrite(ll);
+    send_file(ll, config->filename);
   else
-    llread(ll);
+    receive_file(ll);
 
-  llclose(ll);
+  // Close connection
+  return llclose(ll);
+}
+
+int send_file(link_layer_t *ll, const char *filename) {
+  // Open file
+  FILE* file = fopen(filename, "rb");
+
+  // Close file
+  fclose(file);
+
+  return 0;
+}
+
+int receive_file(link_layer_t *ll) {
+
 
   return 0;
 }
@@ -83,7 +103,7 @@ int main(int argc, const char **argv) {
   }
 
   // Set the program config struct
-  config_t *config;
+  config_t *config = (config_t*) malloc(sizeof(config_t));
   set_config(config, argv);
 
   // We're good to go
