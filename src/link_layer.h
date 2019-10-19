@@ -1,145 +1,97 @@
+/**
+ * @file link_layer.h
+ * @brief Data link layer protocol definition
+ * 
+ */
 #pragma once
 
 #include <termios.h>
 
-#include "util.h"
-#include "conn_mode.h"
 #include "config.h"
+#include "conn_mode.h"
+#include "util.h"
 
-typedef enum state {
-	START, 
-	FLAG_RCV, 
-	A_RCV, 
-	C_RCV, 
-	BCC_OK, 
-	STOP
-} state;
+typedef enum { START, FLAG_RCV, A_RCV, C_RCV, BCC_OK, STOP } state_t;
 
-typedef enum control_field {
-	C_SET = 0x03, 
-	C_UA = 0x07, 
-	C_RR = 0x05, 
-	C_REJ = 0x01, 
-	C_DISC = 0x0B
-} control_field;
+typedef enum {
+  C_SET = 0x03,
+  C_UA = 0x07,
+  C_RR = 0x05,
+  C_REJ = 0x01,
+  C_DISC = 0x0B
+} control_field_t;
 
-typedef enum msg_command {
-	SET, UA, RR, REJ, DISC
-} msg_command;
+typedef enum { SET, UA, RR, REJ, DISC } message_command_t;
 
-typedef enum msg_type {
-	COMMAND, DATA, INVALID
-} msg_type;
+typedef enum { COMMAND, DATA, INVALID } message_type_t;
 
-typedef enum msg_err {
-	INPUT_OUTPUT_ERROR, BCC1_ERROR, BCC2_ERROR
-} msg_err;
+typedef enum { INPUT_OUTPUT_ERROR, BCC1_ERROR, BCC2_ERROR } message_err_t;
 
-typedef enum msg_size {
-	COMMAND_SIZE = 5 * sizeof(char), 
-	MESSAGE_SIZE = 6 * sizeof(char)
-} msg_size;
+typedef enum {
+  COMMAND_SIZE = 5 * sizeof(char),
+  MESSAGE_SIZE = 6 * sizeof(char)
+} message_size_t;
 
-typedef struct msg {
-	msg_type type;
-	msg_command command;
-	
-	int ns;
-	int nr;
+typedef struct {
+  message_type_t type;
+  message_command_t command;
+  message_err_t err;
+  int ns;
+  int nr;
+  struct {
+    unsigned char *message;
+    unsigned int message_size;
+  } data;
+} message_t;
 
-	struct {
-		unsigned char* msg;
-		unsigned int msg_size;
-	} data;
+typedef struct {
+  conn_mode_t cm;          ///< Connection mode (SEND, RECEIVE)
+  int fd;                  ///< Serial device file descriptor
+  int baud_rate;           ///< Baud rate
+  unsigned int seq_number; ///< Frame sequence number (0, 1)
+  unsigned int timeout;    ///< Timeout limit
+  unsigned int retries;    ///< Number of connection attempts in case of failure
+  char frame[MAX_SIZE];    ///< Frame
+  int message_data_max_size;
+} link_layer_t;
 
-	msg_err err;
-} msg;
-
-typedef struct link_layer {
-	char port[20]; /*Dispositivo /dev/ttySx, x = 0, 1*/
-
-	int baudRate; /*Velocidade de transmissão*/
-	unsigned int sequenceNumber; /*Número de sequência da trama: 0, 1*/
-	unsigned int timeout; /*Valor do temporizador: 1 s*/
-	unsigned int numTransmissions; /*Número de tentativas em caso de falha*/
-
-	char frame[MAX_SIZE]; /*Trama*/
-
-	int messageDataMaxSize;
-} link_layer;
-
-extern link_layer* ll;
+/**
+ * @brief Initializes link layer struct from the program config
+ *
+ * @param ll Link layer struct
+ * @param config Program config struct
+ * @return int 0 if successful, error otherwise
+ */
+int set_link_layer(link_layer_t *ll, const config_t *config);
 
 /**
  * @brief Establish a serial port connection
- * 
- * @param cm Connection mode
+ *
+ * @param ll Link layer struct
  * @return int File descriptor for the serial port, 0 on error
  */
-int llopen(config* config);
+int llopen(link_layer_t *ll);
 
 /**
  * @brief Writes a message through the serial port
- * 
- * @param fd File descriptor for the serial port
- * @param buf Buffer of data to write
- * @param buf_size Size of buffer
+ *
+ * @param ll Link layer struct
  * @return int 0 if successful, error otherwise
  */
-int llwrite(int fd, const unsigned char* buf, unsigned int buf_size);
+int llwrite(link_layer_t *ll);
 
 /**
  * @brief Reads a message through the serial port
- * 
- * @param fd File descriptor for the serial port
- * @param msg Message to be read 
+ *
+ * @param ll Link layer struct
  * @return int 0 if successful, error otherwise
  */
-int llread(int fd, unsigned char** msg);
+int llread(link_layer_t *ll);
 
 /**
- * @brief Close the serial port connection
- * 
- * @param fd File descriptor for the serial port
- * @param mode Connection mode
+ * @brief Closes the serial port connection
+ *
+ * @param ll Link layer struct
  * @return int 0 if successful, error otherwise
  */
-int llclose(int fd, conn_mode cm);
-
-
-/**
- * @brief 
- *
- *
-*/
-int initLinkLayer(const char* port, int baudRate,
-		int messageDataMaxSize, int numTransmissions, int timeout);
-
-/**
- * @brief Create command to send
- *
- * @param command buffer where the command will be saved
- * @return int 0 if successfull, error otherwise
-*/
-int createCommand(control_field C, char *command);
-
-/**
- * @brief Send command mensage to certain port
- *
- * @param fd File descriptor for the serial port
- * @param msg_command type of command to be send
- * @return int 0 if successful, error otherwise
-*/
-int sendCommand(int fd, msg_command msg_command);
-
-/**
- * @brief get control field for msg
- * 
- * @param msg_commandstr	string to be updated with the control field
- * @param msg_command		type of command 
- * @return control_field of the msg
- * 
- * if the msg_command is not recugnized it will return C_SET, but
- * the string msg_commandstr will be "ERROR" so we can detect if it is wrong
-*/
-control_field getCommandControl_Field(char* msg_commandstr, msg_command msg_command);
+int llclose(link_layer_t *ll);

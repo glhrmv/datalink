@@ -13,9 +13,10 @@
 #include <sys/types.h>
 
 #include "config.h"
+#include "link_layer.h"
 #include "util.h"
 
-void set_program_config(config *config, const char **argv) {
+void set_config(config_t *config, const char **argv) {
   // Set the connection mode
   if (strcmp(argv[1], "send") == 0)
     config->cm = SEND;
@@ -58,8 +59,19 @@ void set_program_config(config *config, const char **argv) {
   config->filename = str;
 }
 
-int run(config config) {
-  // TODO: Program logic
+int run(const config_t *config) {
+  // Set the data link layer struct
+  link_layer_t *ll;
+  set_link_layer(ll, config);
+
+  llopen(ll);
+
+  if (config->cm == SEND)
+    llwrite(ll);
+  else
+    llread(ll);
+
+  llclose(ll);
 
   return 0;
 }
@@ -70,9 +82,10 @@ int main(int argc, const char **argv) {
     return 1;
   }
 
-  // Set the program config
-  config config;
-  set_program_config(&config, argv);
+  // Set the program config struct
+  config_t *config;
+  set_config(config, argv);
 
+  // We're good to go
   return run(config);
 }

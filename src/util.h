@@ -6,10 +6,13 @@
 
 #pragma once
 
+#include <stdio.h>
 #include <stdbool.h>
 
-#define TRUE 1
-#define FALSE 0
+#define DEFAULT_BAUDRATE B38400
+#define DEFAULT_MSG_MAX_SIZE 512
+#define DEFAULT_RETRIES 3
+#define DEFAULT_TIMEOUT 3
 
 #define MAX_SIZE 256
 
@@ -17,8 +20,16 @@
 
 /**
  * @brief Checks if file exists on system
- * 
+ *
  * @param filename Path to file
  * @return bool True if file exists, false otherwise
  */
 bool file_exists(const char *filename);
+
+/**
+ * @brief Gets the size of a file
+ * 
+ * @param file Desired file
+ * @return int File size
+ */
+int file_size(FILE* file);

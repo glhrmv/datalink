@@ -1,6 +1,8 @@
 /**
  * @file config.h
- * @brief Program configuration structure definition
+ * @brief Program configuration structure type definition
+ *
+ * This is the application layer.
  *
  */
 
@@ -9,8 +11,8 @@
 #include "conn_mode.h"
 
 /// Program config struct
-typedef struct config {
-  int fd;          ///< Serial port file descriptor
-  char* filename;  ///< Name of file to be transferred
-  conn_mode cm;    ///< Connection mode
-} config;
+typedef struct {
+  int fd;         ///< Serial port file descriptor
+  char *filename; ///< Path of file to be transferred
+  conn_mode_t cm; ///< Connection mode
+} config_t;
