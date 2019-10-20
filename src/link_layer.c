@@ -1,10 +1,12 @@
 #include "link_layer.h"
-
-#include "conn_mode.h"
-
+#include "conn_type.h"
 #include "util.h"
 
-int set_link_layer(link_layer_t *ll, const int fd, const conn_mode_t cm) {
+#define FLAG 0x7E
+#define A 0x03
+#define ESCAPE 0x7D
+
+int set_link_layer(link_layer_t *ll, const int fd, const conn_type_t cm) {
   ll->fd = fd;
   ll->cm = cm;
 
@@ -16,34 +18,36 @@ int set_link_layer(link_layer_t *ll, const int fd, const conn_mode_t cm) {
   ll->timeout = 3;
   ll->retries = 3;
 
-  // Save current termios settings
-  if (tcgetattr(ll->fd, &ll->old_tio) != 0) {
-    printf("Could not save current termios settings.\n");
-    return -1;
-  }
-
-  bzero(&ll->new_tio, sizeof(ll->new_tio));
-  ll->new_tio.c_cflag = ll->baud_rate | CS8 | CLOCAL | CREAD;
-  ll->new_tio.c_iflag = IGNPAR;
-  ll->new_tio.c_oflag = 0;
-  ll->new_tio.c_lflag = 0;
-
-  // Inter-character timer unused
-  ll->new_tio.c_cc[VTIME] = 3;
-
-  // Blocking read until x chars received
-  ll->new_tio.c_cc[VMIN] = 0;
-
-  if (tcflush(ll->fd, TCIOFLUSH) != 0)
-    return -1;
-
-  if (tcsetattr(ll->fd, TCSANOW, &ll->new_tio) != 0)
-    return -1;
-
   return 0;
 }
 
 int llopen(link_layer_t *ll) {
+  // Save current termios settings
+  if (tcgetattr(ll->fd, &ll->old_termios) != 0) {
+    printf("Could not save current termios settings.\n");
+    return -1;
+  }
+
+  // Configure new termios settings
+  bzero(&ll->new_termios, sizeof(ll->new_termios));
+  ll->new_termios.c_cflag = ll->baud_rate | CS8 | CLOCAL | CREAD;
+  ll->new_termios.c_iflag = IGNPAR;
+  ll->new_termios.c_oflag = 0;
+  // Input mode (non-canonical)
+  ll->new_termios.c_lflag = 0;
+
+  // Inter-character timer unused
+  ll->new_termios.c_cc[VTIME] = 3;
+
+  // Blocking read until x chars received
+  ll->new_termios.c_cc[VMIN] = 0;
+
+  if (tcflush(ll->fd, TCIOFLUSH) != 0)
+    return -1;
+
+  if (tcsetattr(ll->fd, TCSANOW, &ll->new_termios) != 0)
+    return -1;
+
   printf("Establishing connection...\n");
 
   unsigned int connected = 0, tries = 0;
@@ -84,6 +88,10 @@ int llread(link_layer_t *ll) { return 0; }
 
 int llclose(link_layer_t *ll) {
   printf("Closing connection...\n");
+
+  // Switch back to old termios
+  if (tcsetattr(ll->fd, TCSANOW, &ll->old_termios) == -1)
+		return -1;
 
   return 0;
 }

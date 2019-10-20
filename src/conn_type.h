@@ -1,5 +1,5 @@
 /**
- * @file conn_mode.h
+ * @file conn_type.h
  * @brief Connection mode enum definition
  *
  */
@@ -10,4 +10,4 @@
 typedef enum {
   SEND,   ///< To be used by the sender
   RECEIVE ///< To be used by the receiver
-} conn_mode_t;
+} conn_type_t;

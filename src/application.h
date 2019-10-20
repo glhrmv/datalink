@@ -8,14 +8,14 @@
 
 #pragma once
 
-#include "conn_mode.h"
+#include "conn_type.h"
 #include "link_layer.h"
 
 /// Program config struct
 typedef struct {
   int fd;         ///< Serial port file descriptor
   char *filename; ///< Path of file to be transferred
-  conn_mode_t cm; ///< Connection mode
+  conn_type_t cm; ///< Connection mode
 } config_t;
 
 void set_config(config_t *config, const char **argv);

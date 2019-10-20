@@ -10,12 +10,8 @@
 #include <string.h>
 #include <termios.h>
 
-#include "conn_mode.h"
+#include "conn_type.h"
 #include "util.h"
-
-#define FLAG 0x7E
-#define A 0x03
-#define ESCAPE 0x7D
 
 typedef enum { START, FLAG_RCV, A_RCV, C_RCV, BCC_OK, STOP } state_t;
 
@@ -52,13 +48,14 @@ typedef struct {
   int nr;
 } message_t;
 
+
 /**
  * @brief Link layer structure
  * 
  */
 typedef struct {
-  int fd;         ///< Serial device file descriptor
-  conn_mode_t cm; ///< Connection mode (SEND, RECEIVE)
+  int fd;         ///< Serial port device file descriptor
+  conn_type_t cm; ///< Connection mode (SEND, RECEIVE)
 
   int baud_rate;           ///< Baud rate
   unsigned int seq_number; ///< Frame sequence number (0, 1)
@@ -68,16 +65,21 @@ typedef struct {
 
   int message_data_max_size; ///< Maximum message data size
 
-  struct termios old_tio, new_tio; ///< Old and new termio
+  struct termios old_termios, new_termios; ///< Old and new termio
 } link_layer_t;
 
 /**
- * @brief Initializes link layer struct from the program config
+ * @brief Initializes link layer struct
+ * 
+ * Requires the serial port device file descriptor and
+ * the connection type to be provided as parameters.
  *
  * @param ll Link layer struct
+ * @param fd Serial port device file descriptor
+ * @param cm Connection type 
  * @return int 0 if successful, error otherwise
  */
-int set_link_layer(link_layer_t *ll, int fd, const conn_mode_t cm);
+int set_link_layer(link_layer_t *ll, int fd, const conn_type_t cm);
 
 /**
  * @brief Establish a serial port connection

@@ -68,7 +68,7 @@ int run(const config_t *config) {
 
   // Establish connection
   if (llopen(ll) < 0)
-    return 0;
+    return -1;
 
   // Perform transfer
   if (config->cm == SEND)
@@ -77,7 +77,11 @@ int run(const config_t *config) {
     receive_file(ll);
 
   // Close connection
-  return llclose(ll);
+  if (llclose(ll) <0 )
+    return -1;
+
+  // We're done
+  return close(config->fd);
 }
 
 int send_file(link_layer_t *ll, const char *filename) {
