@@ -88,6 +88,8 @@ int send_file(link_layer_t *ll, const char *filename) {
   // Open file
   FILE* file = fopen(filename, "rb");
 
+  // TODO: send file to llwrite
+
   // Close file
   fclose(file);
 
@@ -95,7 +97,7 @@ int send_file(link_layer_t *ll, const char *filename) {
 }
 
 int receive_file(link_layer_t *ll) {
-
+  // TODO: read from from llread
 
   return 0;
 }
