@@ -64,7 +64,10 @@ void set_config(config_t *config, const char **argv) {
 int run(const config_t *config) {
   // Set the data link layer struct
   link_layer_t *ll = (link_layer_t *)malloc(sizeof(link_layer_t));
-  set_link_layer(ll, config->port, config->ct);
+  if (set_link_layer(ll, config->port, config->ct) < 0) {
+    perror("set_link_layer");
+    return -1;
+  }
 
   printf("Calling llopen...\n");
 

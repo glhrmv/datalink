@@ -24,6 +24,12 @@
 int set_link_layer(link_layer_t *ll, char *port, const conn_type_t ct) {
   // Open serial port device for reading and writing, and not as controlling
   ll->fd = open(port, O_RDWR | O_NOCTTY);
+  if (ll->fd < 0) {
+    perror("open");
+    printf("trying to open port %s\n", port);
+    return -1;
+  }
+
   // Set connection type
   ll->ct = ct;
 
@@ -41,7 +47,7 @@ int set_link_layer(link_layer_t *ll, char *port, const conn_type_t ct) {
 int llopen(link_layer_t *ll) {
   // Save current termios settings
   if (tcgetattr(ll->fd, &ll->old_termios) < 0) {
-    perror("tcgetattr. ");
+    perror("tcgetattr");
     return -1;
   }
 
@@ -60,13 +66,13 @@ int llopen(link_layer_t *ll) {
   ll->new_termios.c_cc[VMIN] = 0;
 
   if (tcflush(ll->fd, TCIOFLUSH) != 0) {
-    perror("tcflush. ");
+    perror("tcflush");
     return -1;
   }
   
 
   if (tcsetattr(ll->fd, TCSANOW, &ll->new_termios) != 0) {
-    perror("tcsetattr. ");
+    perror("tcsetattr");
     return -1;
   }
 
@@ -155,11 +161,19 @@ int llclose(link_layer_t *ll) {
   printf("Connection closed.\n");
 
   // Switch back to old termios
-  if (tcsetattr(ll->fd, TCSANOW, &ll->old_termios) < 0)
+  if (tcsetattr(ll->fd, TCSANOW, &ll->old_termios) < 0) {
+    perror("tcsetattr");
     return -1;
+  }
 
   // Close serial port file descriptor
-  return close(ll->fd);
+  if (close(ll->fd) < 0) {
+    perror("close");
+    return -1;
+  }
+    
+  
+  return 0;
 }
 
 unsigned char *create_command(link_layer_t *ll, control_field_t cf) {
