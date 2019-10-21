@@ -20,8 +20,8 @@
 
 void set_config(config_t *config, const char **argv) {
   // Initialize pointers
-  config->file_name = NULL;
-  config->port = NULL;
+  config->port = (char*) malloc(256);
+  config->file_name = (char*) malloc(256);
 
   // Set the connection mode
   if (strcmp(argv[1], "send") == 0)
@@ -35,7 +35,7 @@ void set_config(config_t *config, const char **argv) {
 
   // Build the serial port file name from the port number given
   char str[64];
-  sprintf(str, "/dev/ttyS%s", argv[2]);
+  sprintf(str, "/dev/ttys%s", argv[2]);
 
   // Check if serial port exists
   if (!file_exists(str)) {
@@ -45,12 +45,14 @@ void set_config(config_t *config, const char **argv) {
 
   // Set the serial port device file path
   strcpy(config->port, str);
+  printf("config port: %s\n", config->port);
+
+  // If receiving, keep config file name as recognisable string
+  strcpy(config->file_name, "null");
 
   // If receiving, we're done setting the config
-  if (config->ct == RECEIVE) {
-    
+  if (config->ct == RECEIVE)
     return;
-  }
 
   // Prompt user for name of file to be sent
   printf("Name of file to send ? ");
@@ -64,7 +66,8 @@ void set_config(config_t *config, const char **argv) {
   }
 
   // Set the file name
-  config->file_name = str;
+  strcpy(config->file_name, str);
+  printf("config file nmae: %s\n", config->file_name);
 }
 
 int run(const config_t *config) {
