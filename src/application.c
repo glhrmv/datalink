@@ -40,7 +40,7 @@ void set_config(config_t *config, const char **argv) {
   }
 
   // Set the serial port device file path
-  config->port = str;
+  strcpy(config->port, str);
 
   // If receiving, we're done setting the config
   if (config->ct == RECEIVE)
