@@ -69,7 +69,7 @@ int llopen(link_layer_t *ll) {
     perror("tcflush");
     return -1;
   }
-  
+
   if (tcsetattr(ll->fd, TCSANOW, &ll->new_termios) != 0) {
     perror("tcsetattr");
     return -1;
@@ -134,11 +134,20 @@ int llclose(link_layer_t *ll) {
   switch (ll->ct) {
   case SEND: {
     while (!disconnected) {
-      // TODO: Send DISC
+      // Send DISC
+      send_command(ll, DISC);
 
-      // TODO: Receive DISC
+      // Receive DISC
+      message_t *msg = (message_t *)malloc(sizeof(message_t));
+      receive_message(ll, msg);
 
-      // TODO: Send UA
+      if (msg->command == DISC) {
+        // Send UA
+        send_command(ll, UA);
+
+        disconnected = 1;
+        continue;
+      }
 
       tries++;
     }
@@ -146,11 +155,21 @@ int llclose(link_layer_t *ll) {
   }
   case RECEIVE: {
     while (!disconnected) {
-      // TODO: Receive DISC
+      // Receive DISC
+      message_t *msg = (message_t *)malloc(sizeof(message_t));
+      receive_message(ll, msg);
 
-      // TODO: Send DISC
+      if (msg->command == DISC) {
+        // Send DISC
+        send_command(ll, DISC);
 
-      // TODO: Receive UA
+        // Receive UA
+        receive_message(ll, msg);
+        if (msg->command == UA) {
+          disconnected = 1;
+          continue;
+        }
+      }
 
       tries++;
     }
@@ -170,8 +189,7 @@ int llclose(link_layer_t *ll) {
     perror("close");
     return -1;
   }
-    
-  
+
   return 0;
 }
 
@@ -344,7 +362,7 @@ int receive_message(link_layer_t *ll, message_t *msg) {
           msg->type = COMMAND;
 
         printf("BCC_OK: FLAG received. Going to STOP.\n");
-        
+
         msg_buf[size++] = c;
 
         state = STOP;
