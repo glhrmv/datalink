@@ -19,6 +19,10 @@
 #include "application.h"
 
 void set_config(config_t *config, const char **argv) {
+  // Initialize pointers
+  config->file_name = NULL;
+  config->port = NULL;
+
   // Set the connection mode
   if (strcmp(argv[1], "send") == 0)
     config->ct = SEND;
@@ -43,8 +47,10 @@ void set_config(config_t *config, const char **argv) {
   strcpy(config->port, str);
 
   // If receiving, we're done setting the config
-  if (config->ct == RECEIVE)
+  if (config->ct == RECEIVE) {
+    
     return;
+  }
 
   // Prompt user for name of file to be sent
   printf("Name of file to send ? ");
@@ -207,6 +213,9 @@ int main(int argc, const char **argv) {
   // Set the program config struct
   config_t *config = (config_t *)malloc(sizeof(config_t));
   set_config(config, argv);
+
+  // Print config values
+  printf("config:\nport: %s\nfile name: %s\n", config->port, config->file_name);
 
   // We're good to go
   return run(config);

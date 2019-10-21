@@ -34,9 +34,9 @@ typedef struct packet {
  *
  */
 typedef struct {
-  char *port;     ///< Path of serial port device
+  char *port;      ///< Path of serial port device
   char *file_name; ///< Path of file to be transferred
-  conn_type_t ct; ///< Connection type
+  conn_type_t ct;  ///< Connection type
 } config_t;
 
 /**
