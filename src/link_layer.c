@@ -70,7 +70,6 @@ int llopen(link_layer_t *ll) {
     return -1;
   }
   
-
   if (tcsetattr(ll->fd, TCSANOW, &ll->new_termios) != 0) {
     perror("tcsetattr");
     return -1;
@@ -89,7 +88,7 @@ int llopen(link_layer_t *ll) {
       message_t *msg = (message_t *)malloc(sizeof(message_t));
       receive_message(ll, msg);
 
-      if (msg->type == UA) {
+      if (msg->command == UA) {
         connected = 1;
         continue;
       }
@@ -105,7 +104,7 @@ int llopen(link_layer_t *ll) {
       message_t *msg = (message_t *)malloc(sizeof(message_t));
       receive_message(ll, msg);
 
-      if (msg->type == SET) {
+      if (msg->command == SET) {
         // Send UA
         send_command(ll, UA);
 
@@ -344,12 +343,13 @@ int receive_message(link_layer_t *ll, message_t *msg) {
         if (msg->type == INVALID)
           msg->type = COMMAND;
 
+        printf("BCC_OK: FLAG received. Going to STOP.\n");
+        
         msg_buf[size++] = c;
 
         state = STOP;
 
-        printf("BCC_OK: FLAG received. Going to STOP.\n");
-      } else if (c != FLAG) {
+      } else {
         if (msg->type == INVALID)
           msg->type = DATA;
         else if (msg->type == COMMAND) {
