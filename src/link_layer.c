@@ -77,15 +77,17 @@ int llopen(link_layer_t *ll) {
 
   printf("Establishing connection...\n");
 
+  message_t *msg = (message_t *)malloc(sizeof(message_t));
   unsigned int connected = 0, tries = 0;
   switch (ll->ct) {
   case SEND: {
     while (!connected) {
-      // Send SET
-      send_command(ll, SET);
-
+      if (tries == 0) {
+        // Send SET
+        send_command(ll, SET);
+      }
+      
       // Receive UA
-      message_t *msg = (message_t *)malloc(sizeof(message_t));
       receive_message(ll, msg);
 
       if (msg->command == UA) {
@@ -101,7 +103,6 @@ int llopen(link_layer_t *ll) {
   case RECEIVE: {
     while (!connected) {
       // Receive SET
-      message_t *msg = (message_t *)malloc(sizeof(message_t));
       receive_message(ll, msg);
 
       if (msg->command == SET) {
