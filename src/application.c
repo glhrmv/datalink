@@ -35,7 +35,7 @@ void set_config(config_t *config, const char **argv) {
 
   // Build the serial port file name from the port number given
   char str[64];
-  sprintf(str, "/dev/ttyS%s", argv[2]);
+  sprintf(str, "/dev/%s", argv[2]);
 
   // Check if serial port exists
   if (!file_exists(str)) {
@@ -45,7 +45,6 @@ void set_config(config_t *config, const char **argv) {
 
   // Set the serial port device file path
   strcpy(config->port, str);
-  printf("config port: %s\n", config->port);
 
   // If receiving, keep config file name as recognisable string
   strcpy(config->file_name, "null");
@@ -67,7 +66,6 @@ void set_config(config_t *config, const char **argv) {
 
   // Set the file name
   strcpy(config->file_name, str);
-  printf("config file nmae: %s\n", config->file_name);
 }
 
 int run(const config_t *config) {
@@ -209,16 +207,13 @@ int receive_control_packet(link_layer_t *ll, packet_t *packet) {
 
 int main(int argc, const char **argv) {
   if (argc != 3) {
-    printf("Usage: %s <send|receive> <serial port number>\n", argv[0]);
+    printf("Usage: %s <send|receive> <serial port device name>\n", argv[0]);
     return 1;
   }
 
   // Set the program config struct
   config_t *config = (config_t *)malloc(sizeof(config_t));
   set_config(config, argv);
-
-  // Print config values
-  printf("config:\nport: %s\nfile name: %s\n", config->port, config->file_name);
 
   // We're good to go
   return run(config);
