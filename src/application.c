@@ -26,7 +26,7 @@ void set_config(config_t *config, const char **argv) {
     config->ct = RECEIVE;
   else {
     printf("Invalid connection mode. Must be 'send' or 'receive'\n");
-    exit(1);
+    exit(-1);
   }
 
   // Build the serial port file name from the port number given
@@ -36,7 +36,7 @@ void set_config(config_t *config, const char **argv) {
   // Check if serial port exists
   if (!file_exists(str)) {
     printf("Invalid port number given. Serial port %s does not exist.\n", str);
-    exit(1);
+    exit(-1);
   }
 
   // Set the serial port device file path
@@ -54,7 +54,7 @@ void set_config(config_t *config, const char **argv) {
   // Check if file exists
   if (!file_exists(str)) {
     printf("Invalid file name given. File %s does not exist.\n", str);
-    exit(1);
+    exit(-1);
   }
 
   // Set the filename

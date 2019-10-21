@@ -14,9 +14,10 @@ bool file_exists(const char *filename) { return access(filename, F_OK) != -1; }
 int file_size(FILE *file) {
 	// Seek to end of file
 	fseek(file, 0, SEEK_END);
+	// Get size
 	int size = ftell(file);
-  
 	// Seek back to starting position
 	fseek(file, 0, SEEK_SET);
+
   return size;
 }

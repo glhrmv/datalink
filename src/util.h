@@ -9,13 +9,6 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#define DEFAULT_BAUDRATE B38400
-#define DEFAULT_MSG_MAX_SIZE 512
-#define DEFAULT_RETRIES 3
-#define DEFAULT_TIMEOUT 3
-
-#define MAX_SIZE 256
-
 #define BIT(n) (0x01 << n)
 
 /**
@@ -29,7 +22,7 @@ bool file_exists(const char *filename);
 /**
  * @brief Gets the size of a file
  * 
- * @param file Desired file
+ * @param file Desired file pointer
  * @return int File size
  */
 int file_size(FILE* file);

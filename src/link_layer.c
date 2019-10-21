@@ -3,12 +3,15 @@
 #include <fcntl.h>
 
 #include "link_layer.h"
-#include "conn_type.h"
-#include "util.h"
 
 #define FLAG 0x7E
 #define A 0x03
 #define ESCAPE 0x7D
+
+#define DEFAULT_BAUDRATE B38400
+#define DEFAULT_MSG_MAX_SIZE 512
+#define DEFAULT_RETRIES 3
+#define DEFAULT_TIMEOUT 3
 
 int set_link_layer(link_layer_t *ll, char *port, const conn_type_t ct) {
   // Open serial port device for reading and writing, and not as controlling
@@ -18,11 +21,11 @@ int set_link_layer(link_layer_t *ll, char *port, const conn_type_t ct) {
 
   // Below are default values
   // TODO: Make these configurable by the user
-  ll->baud_rate = B38400;
-  ll->message_data_max_size = 512;
   ll->seq_number = 0;
-  ll->timeout = 3;
-  ll->retries = 3;
+  ll->baud_rate = DEFAULT_BAUDRATE;
+  ll->message_data_max_size = DEFAULT_MSG_MAX_SIZE;
+  ll->retries = DEFAULT_RETRIES;
+  ll->timeout = DEFAULT_TIMEOUT;
 
   return 0;
 }
