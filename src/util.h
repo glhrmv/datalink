@@ -14,10 +14,10 @@
 /**
  * @brief Checks if file exists on system
  *
- * @param filename Path to file
+ * @param file_name Path to file
  * @return bool True if file exists, false otherwise
  */
-bool file_exists(const char *filename);
+bool file_exists(const char *file_name);
 
 /**
  * @brief Gets the size of a file
@@ -25,4 +25,4 @@ bool file_exists(const char *filename);
  * @param file Desired file pointer
  * @return int File size
  */
-int file_size(FILE* file);
+int get_file_size(FILE* file);

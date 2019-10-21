@@ -2,7 +2,7 @@
 
 > University project for FEUP, MIEIC (RCOM).
 
-An asynchronous serial port (RS-232) data link protocol, accompanied by a simple application, showcasing the protocol's potential, that sends data frames complying with the protocol to transfer a file ([`pinguim.gif`](/pinguim.gif)).
+An asynchronous serial port (RS-232) data link protocol, accompanied by a simple application, showcasing the protocol's potential, that sends data complying with the protocol to transfer a file ([`pinguim.gif`](files/pinguim.gif)).
 
 ## Usage
 

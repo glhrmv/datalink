@@ -3,7 +3,7 @@
  * @brief The datalink program data link layer header file
  *
  * This is the data link layer of the project.
- * 
+ *
  * The API is defined in the documentation below.
  *
  */
@@ -19,15 +19,15 @@
 
 #define MAX_SIZE 256
 
-typedef enum { START, FLAG_RCV, A_RCV, C_RCV, BCC_OK, STOP } state_t;
+typedef enum state { START, FLAG_RCV, A_RCV, C_RCV, BCC_OK, STOP } state_t;
 
-typedef enum { I, SET, DISC, UA, RR, REJ } command_t;
+typedef enum command { I, SET, DISC, UA, RR, REJ } command_t;
 
-typedef enum { CONTROL, DATA, INVALID } type_t;
+typedef enum type { COMMAND, DATA, INVALID } type_t;
 
-typedef enum { IO_ERR, BCC1_ERR, BCC2_ERR } err_t;
+typedef enum err { IO_ERR, BCC1_ERR, BCC2_ERR } err_t;
 
-typedef enum {
+typedef enum control_field {
   C_SET = 0x03,
   C_UA = 0x07,
   C_RR = 0x05,
@@ -35,16 +35,16 @@ typedef enum {
   C_DISC = 0x0B
 } control_field_t;
 
-typedef enum {
+typedef enum message_size {
   COMMAND_SIZE = 5 * sizeof(char),
   MESSAGE_SIZE = 6 * sizeof(char)
 } message_size_t;
 
-typedef struct {
+typedef struct message {
   struct {
-    unsigned char *packet;
-    unsigned int data_size;
-  } packet;
+    unsigned char *message;
+    unsigned int message_size;
+  } data;
 
   type_t type;
   command_t command;
@@ -58,7 +58,7 @@ typedef struct {
  * @brief Link layer structure
  *
  */
-typedef struct {
+typedef struct link_layer {
   int fd;         ///< Serial port device file descriptor
   conn_type_t ct; ///< Connection type (SEND, RECEIVE)
 
@@ -126,5 +126,9 @@ command_t get_command(control_field_t cf);
 control_field_t get_command_w_control_field(char *command_str,
                                             command_t command);
 
-unsigned int stuff_buffer(unsigned char **buf, unsigned int buf_size);
-unsigned int destuff_buffer(unsigned char **buf, unsigned int buf_size);
+int receive_message(link_layer_t *ll, message_t *msg);
+
+unsigned char process_bcc(const unsigned char* buf, unsigned int buf_size);
+
+unsigned int stuff_buffer(unsigned char *buf, unsigned int buf_size);
+unsigned int destuff_buffer(unsigned char *buf, unsigned int buf_size);

@@ -14,11 +14,20 @@
 #include "link_layer.h"
 #include "util.h"
 
-typedef enum {
-  CONTROL_PACKET_DATA = 1,
-  CONTROL_PACKET_START = 2,
-  CONTROL_PACKET_END = 3
+typedef enum packet_type {
+  PACKET_TYPE_DATA = 1,
+  PACKET_TYPE_START = 2,
+  PACKET_TYPE_END = 3
 } packet_type_t;
+
+typedef enum packet_field { FILE_SIZE_FIELD, FILE_NAME_FIELD } packet_field_t;
+
+typedef struct packet {
+  packet_type_t type;
+  char *file_name;
+  int file_size;
+  char *file_size_buf;
+} packet_t;
 
 /**
  * @brief Program config struct
@@ -26,7 +35,7 @@ typedef enum {
  */
 typedef struct {
   char *port;     ///< Path of serial port device
-  char *filename; ///< Path of file to be transferred
+  char *file_name; ///< Path of file to be transferred
   conn_type_t ct; ///< Connection type
 } config_t;
 
@@ -58,12 +67,12 @@ void set_config(config_t *config, const char **argv);
  */
 int run(const config_t *config);
 
-int send_file(link_layer_t *ll, const char *filename);
+int send_file(link_layer_t *ll, const char *file_name);
 
 int receive_file(link_layer_t *ll);
 
-int send_control_packet(int fd, int C, char *file_size, char *filename);
-int receive_control_packet(int fd, int ctrl, int *file_length, char **filename);
+int send_control_packet(link_layer_t *ll, const packet_t *packet);
+int receive_control_packet(link_layer_t *ll, packet_t *packet);
 
-int send_data_packet(int fd, int N, const char *buf, int length);
-int receive_data_packet(int fd, int *N, char **buf, int length);
+int send_data_packet(link_layer_t *ll, int N, const char *buf, int length);
+int receive_data_packet(link_layer_t *ll, int *N, char **buf, int *length);

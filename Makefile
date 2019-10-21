@@ -10,7 +10,7 @@ CCFLAGS = -g -O3 -Wall
 # Source files
 SRCS := $(wildcard ./src/*.c)
 
-# Object and dependencies (filenames)
+# Object and dependencies (file names)
 OBJS := $(SRCS:.c=.o)
 DEPS := $(OBJS:.o=.d)
 

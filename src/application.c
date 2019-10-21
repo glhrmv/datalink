@@ -46,7 +46,7 @@ void set_config(config_t *config, const char **argv) {
   if (config->ct == RECEIVE)
     return;
 
-  // Prompt user for filename of file to be sent
+  // Prompt user for name of file to be sent
   printf("Name of file to send ? ");
   memset(str, 0, sizeof(str));
   scanf("%[^\n]%*c", str);
@@ -57,8 +57,8 @@ void set_config(config_t *config, const char **argv) {
     exit(-1);
   }
 
-  // Set the filename
-  config->filename = str;
+  // Set the file name
+  config->file_name = str;
 }
 
 int run(const config_t *config) {
@@ -72,7 +72,7 @@ int run(const config_t *config) {
 
   // Perform transfer
   if (config->ct == SEND) {
-    if (send_file(ll, config->filename) < 0)
+    if (send_file(ll, config->file_name) < 0)
       return -1;
   } else if (config->ct == RECEIVE) {
     if (receive_file(ll) < 0)
@@ -83,15 +83,15 @@ int run(const config_t *config) {
   return llclose(ll);
 }
 
-int send_file(link_layer_t *ll, const char *filename) {
+int send_file(link_layer_t *ll, const char *file_name) {
   // Open file
-  FILE *file = fopen(filename, "rb");
+  FILE *file = fopen(file_name, "rb");
 
   // TODO: get size of file to be sent,
   //       and allocate a character buffer with
   //       the same size
 
-  // TODO: send START control package
+  // TODO: send START control packet
   //       (with file size and name in value field)
 
   // TODO: send file chunks to llwrite
@@ -101,13 +101,13 @@ int send_file(link_layer_t *ll, const char *filename) {
   // Close file
   fclose(file);
 
-  // TODO: send END control package
+  // TODO: send END control packet
 
   return 0;
 }
 
 int receive_file(link_layer_t *ll) {
-  // TODO: receive START control package
+  // TODO: receive START control packet
   //       (with file size and name in value field)
 
   // TODO: create a file with the proper name
@@ -116,6 +116,77 @@ int receive_file(link_layer_t *ll) {
   //       (should read as many bytes as file size given)
 
   // TODO: create
+
+  return 0;
+}
+
+int send_control_packet(link_layer_t *ll, const packet_t *packet) {
+  // Calculate control packet size
+  int packet_buf_size =
+      5 + strlen(packet->file_size_buf) + strlen(packet->file_name);
+
+  // Create the control packet buffer
+  char packet_buf[packet_buf_size];
+  unsigned int pos = 0;
+
+  // Set packet type
+  packet_buf[pos++] = packet->type;
+
+  // Set file size field
+  packet_buf[pos++] = FILE_SIZE_FIELD;
+  packet_buf[pos++] = strlen(packet->file_size_buf);
+  for (unsigned int i = 0; i < strlen(packet->file_size_buf); i++)
+    packet_buf[pos++] = packet->file_size_buf[i];
+
+  // Set file name field
+  packet_buf[pos++] = FILE_NAME_FIELD;
+  packet_buf[pos++] = strlen(packet->file_name);
+  for (unsigned int i = 0; i < strlen(packet->file_name); i++)
+    packet_buf[pos++] = packet->file_name[i];
+
+  // Write it to the serial port
+  if (llwrite(ll, packet_buf, packet_buf_size) < 0)
+    return -1;
+
+  free(packet_buf);
+
+  return 0;
+}
+
+int receive_control_packet(link_layer_t *ll, packet_t *packet) {
+  // Receive packet
+  char *packet_buf = NULL;
+  int packet_buf_size = llread(ll, packet_buf);
+
+  // Get packet type
+  unsigned int pos = 0;
+  packet->type = packet_buf[pos++];
+
+  // Go through packet fields
+  while (true) {
+    switch (packet_buf[pos++]) {
+    case FILE_SIZE_FIELD: {
+      unsigned int octets = (unsigned int)packet_buf[pos++];
+
+      char *length = malloc(octets);
+      memcpy(length, &packet_buf[pos], octets);
+
+      packet->file_size = atoi(length);
+      free(length);
+
+      break;
+    }
+    case FILE_NAME_FIELD: {
+      unsigned char octets = (unsigned char)packet_buf[pos++];
+
+      memcpy(packet->file_name, &packet_buf[pos], octets);
+
+      break;
+    }
+    default:
+      return -1;
+    }
+  }
 
   return 0;
 }
