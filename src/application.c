@@ -21,9 +21,9 @@
 void set_config(config_t *config, const char **argv) {
   // Set the connection mode
   if (strcmp(argv[1], "send") == 0)
-    config->cm = SEND;
+    config->ct = SEND;
   else if (strcmp(argv[1], "receive") == 0)
-    config->cm = RECEIVE;
+    config->ct = RECEIVE;
   else {
     printf("Invalid connection mode. Must be 'send' or 'receive'\n");
     exit(1);
@@ -39,11 +39,11 @@ void set_config(config_t *config, const char **argv) {
     exit(1);
   }
 
-  // Set the serial port file descriptor
-  config->fd = open(str, O_RDWR | O_NOCTTY);
+  // Set the serial port device file path
+  config->port = str;
 
   // If receiving, we're done setting the config
-  if (config->cm == RECEIVE)
+  if (config->ct == RECEIVE)
     return;
 
   // Prompt user for filename of file to be sent
@@ -64,24 +64,20 @@ void set_config(config_t *config, const char **argv) {
 int run(const config_t *config) {
   // Set the data link layer struct
   link_layer_t *ll = (link_layer_t*) malloc(sizeof(link_layer_t));
-  set_link_layer(ll, config->fd, config->cm);
+  set_link_layer(ll, config->port, config->ct);
 
   // Establish connection
   if (llopen(ll) < 0)
     return -1;
 
   // Perform transfer
-  if (config->cm == SEND)
+  if (config->ct == SEND)
     send_file(ll, config->filename);
   else
     receive_file(ll);
 
   // Close connection
-  if (llclose(ll) <0 )
-    return -1;
-
-  // We're done
-  return close(config->fd);
+  return llclose(ll);
 }
 
 int send_file(link_layer_t *ll, const char *filename) {

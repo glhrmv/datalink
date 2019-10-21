@@ -1,3 +1,7 @@
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 #include "link_layer.h"
 #include "conn_type.h"
 #include "util.h"
@@ -6,9 +10,11 @@
 #define A 0x03
 #define ESCAPE 0x7D
 
-int set_link_layer(link_layer_t *ll, const int fd, const conn_type_t cm) {
-  ll->fd = fd;
-  ll->cm = cm;
+int set_link_layer(link_layer_t *ll, char *port, const conn_type_t ct) {
+  // Open serial port device for reading and writing, and not as controlling
+  ll->fd = open(port, O_RDWR | O_NOCTTY);
+  // Set connection type
+  ll->ct = ct;
 
   // Below are default values
   // TODO: Make these configurable by the user
@@ -51,7 +57,7 @@ int llopen(link_layer_t *ll) {
   printf("Establishing connection...\n");
 
   unsigned int connected = 0, tries = 0;
-  switch (ll->cm) {
+  switch (ll->ct) {
   case SEND: {
     while (!connected) {
       if (tries == 0) {
@@ -90,10 +96,11 @@ int llclose(link_layer_t *ll) {
   printf("Closing connection...\n");
 
   // Switch back to old termios
-  if (tcsetattr(ll->fd, TCSANOW, &ll->old_termios) == -1)
+  if (tcsetattr(ll->fd, TCSANOW, &ll->old_termios) < 0)
 		return -1;
 
-  return 0;
+  // Close serial port file descriptor
+  return close(ll->fd);
 }
 
 unsigned char *create_command(link_layer_t *ll, control_field_t cf) {

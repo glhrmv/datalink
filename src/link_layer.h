@@ -55,7 +55,7 @@ typedef struct {
  */
 typedef struct {
   int fd;         ///< Serial port device file descriptor
-  conn_type_t cm; ///< Connection mode (SEND, RECEIVE)
+  conn_type_t ct; ///< Connection type (SEND, RECEIVE)
 
   int baud_rate;           ///< Baud rate
   unsigned int seq_number; ///< Frame sequence number (0, 1)
@@ -75,11 +75,11 @@ typedef struct {
  * the connection type to be provided as parameters.
  *
  * @param ll Link layer struct
- * @param fd Serial port device file descriptor
- * @param cm Connection type 
+ * @param port Serial port device filepath
+ * @param ct Connection type 
  * @return int 0 if successful, error otherwise
  */
-int set_link_layer(link_layer_t *ll, int fd, const conn_type_t cm);
+int set_link_layer(link_layer_t *ll, char* port, const conn_type_t ct);
 
 /**
  * @brief Establish a serial port connection
