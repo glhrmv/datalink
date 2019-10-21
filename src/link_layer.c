@@ -40,8 +40,10 @@ int set_link_layer(link_layer_t *ll, char *port, const conn_type_t ct) {
 
 int llopen(link_layer_t *ll) {
   // Save current termios settings
-  if (tcgetattr(ll->fd, &ll->old_termios) < 0)
+  if (tcgetattr(ll->fd, &ll->old_termios) < 0) {
+    perror("tcgetattr. ");
     return -1;
+  }
 
   // Configure new termios settings
   bzero(&ll->new_termios, sizeof(ll->new_termios));
@@ -57,11 +59,16 @@ int llopen(link_layer_t *ll) {
   // Blocking read until x chars received
   ll->new_termios.c_cc[VMIN] = 0;
 
-  if (tcflush(ll->fd, TCIOFLUSH) != 0)
+  if (tcflush(ll->fd, TCIOFLUSH) != 0) {
+    perror("tcflush. ");
     return -1;
+  }
+  
 
-  if (tcsetattr(ll->fd, TCSANOW, &ll->new_termios) != 0)
+  if (tcsetattr(ll->fd, TCSANOW, &ll->new_termios) != 0) {
+    perror("tcsetattr. ");
     return -1;
+  }
 
   printf("Establishing connection...\n");
 

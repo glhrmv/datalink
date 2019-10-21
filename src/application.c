@@ -66,6 +66,8 @@ int run(const config_t *config) {
   link_layer_t *ll = (link_layer_t *)malloc(sizeof(link_layer_t));
   set_link_layer(ll, config->port, config->ct);
 
+  printf("Calling llopen...\n");
+
   // Establish connection
   if (llopen(ll) < 0)
     return -1;
@@ -78,6 +80,8 @@ int run(const config_t *config) {
     if (receive_file(ll) < 0)
       return -1;
   }
+
+  printf("Calling llclose...\n"); 
 
   // Close connection
   return llclose(ll);
