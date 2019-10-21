@@ -1,6 +1,13 @@
-#include <sys/types.h>
-#include <sys/stat.h>
+/**
+ * @file link_layer.h
+ * @brief The datalink program data link layer source file
+ *
+ * This is the data link layer of the project.
+ * 
+ */
 #include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include "link_layer.h"
 
@@ -32,10 +39,8 @@ int set_link_layer(link_layer_t *ll, char *port, const conn_type_t ct) {
 
 int llopen(link_layer_t *ll) {
   // Save current termios settings
-  if (tcgetattr(ll->fd, &ll->old_termios) != 0) {
-    printf("Could not save current termios settings.\n");
+  if (tcgetattr(ll->fd, &ll->old_termios) < 0)
     return -1;
-  }
 
   // Configure new termios settings
   bzero(&ll->new_termios, sizeof(ll->new_termios));
@@ -63,19 +68,11 @@ int llopen(link_layer_t *ll) {
   switch (ll->ct) {
   case SEND: {
     while (!connected) {
-      if (tries == 0) {
-
-        if (tries >= ll->retries) {
-          printf("Connection timeout. (Too many tries)\n");
-          return -1;
-        }
-
-        send_command(ll, SET);
-
-        tries++;
-      }
+      // TODO: Send SET
 
       // TODO: Receive UA
+
+      tries++;
     }
     break;
   }
@@ -83,24 +80,59 @@ int llopen(link_layer_t *ll) {
   case RECEIVE: {
     while (!connected) {
       // TODO: Receive SET
+
+      // TODO: Send UA
+
+      tries++;
     }
     break;
   }
   }
 
+  printf("Connection established.\n");
+
   return ll->fd;
 }
 
-int llwrite(link_layer_t *ll) { return 0; }
+int llwrite(link_layer_t *ll, char *buf, int buf_size) { return 0; }
 
-int llread(link_layer_t *ll) { return 0; }
+int llread(link_layer_t *ll, char *buf) { return 0; }
 
 int llclose(link_layer_t *ll) {
   printf("Closing connection...\n");
 
+  unsigned int disconnected = 0, tries = 0;
+  switch (ll->ct) {
+  case SEND: {
+    while (!disconnected) {
+      // TODO: Send DISC
+
+      // TODO: Receive DISC
+
+      // TODO: Send UA
+
+      tries++;
+    }
+    break;
+  }
+  case RECEIVE: {
+    while (!disconnected) {
+      // TODO: Receive DISC
+
+      // TODO: Send DISC
+
+      // TODO: Receive UA
+
+      tries++;
+    }
+    break;
+  }
+  }
+  printf("Connection closed.\n");
+
   // Switch back to old termios
   if (tcsetattr(ll->fd, TCSANOW, &ll->old_termios) < 0)
-		return -1;
+    return -1;
 
   // Close serial port file descriptor
   return close(ll->fd);
@@ -152,7 +184,7 @@ command_t get_command(control_field_t cf) {
 }
 
 control_field_t get_command_w_control_field(char *command_str,
-                                          command_t command) {
+                                            command_t command) {
   switch (command) {
   case SET:
     strcpy(command_str, "SET");

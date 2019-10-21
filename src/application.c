@@ -3,7 +3,7 @@
  * @brief The datalink program application layer source file
  *
  * This is the application layer of the project.
- * 
+ *
  * It is also the starting point of the built program.
  *
  */
@@ -63,7 +63,7 @@ void set_config(config_t *config, const char **argv) {
 
 int run(const config_t *config) {
   // Set the data link layer struct
-  link_layer_t *ll = (link_layer_t*) malloc(sizeof(link_layer_t));
+  link_layer_t *ll = (link_layer_t *)malloc(sizeof(link_layer_t));
   set_link_layer(ll, config->port, config->ct);
 
   // Establish connection
@@ -71,10 +71,13 @@ int run(const config_t *config) {
     return -1;
 
   // Perform transfer
-  if (config->ct == SEND)
-    send_file(ll, config->filename);
-  else
-    receive_file(ll);
+  if (config->ct == SEND) {
+    if (send_file(ll, config->filename) < 0)
+      return -1;
+  } else if (config->ct == RECEIVE) {
+    if (receive_file(ll) < 0)
+      return -1;
+  }
 
   // Close connection
   return llclose(ll);
@@ -82,18 +85,37 @@ int run(const config_t *config) {
 
 int send_file(link_layer_t *ll, const char *filename) {
   // Open file
-  FILE* file = fopen(filename, "rb");
+  FILE *file = fopen(filename, "rb");
 
-  // TODO: send file to llwrite
+  // TODO: get size of file to be sent,
+  //       and allocate a character buffer with
+  //       the same size
+
+  // TODO: send START control package
+  //       (with file size and name in value field)
+
+  // TODO: send file chunks to llwrite
+
+  // TODO: free the character buffer
 
   // Close file
   fclose(file);
+
+  // TODO: send END control package
 
   return 0;
 }
 
 int receive_file(link_layer_t *ll) {
+  // TODO: receive START control package
+  //       (with file size and name in value field)
+
+  // TODO: create a file with the proper name
+
   // TODO: read from from llread
+  //       (should read as many bytes as file size given)
+
+  // TODO: create
 
   return 0;
 }
@@ -105,7 +127,7 @@ int main(int argc, const char **argv) {
   }
 
   // Set the program config struct
-  config_t *config = (config_t*) malloc(sizeof(config_t));
+  config_t *config = (config_t *)malloc(sizeof(config_t));
   set_config(config, argv);
 
   // We're good to go

@@ -1,6 +1,10 @@
 /**
  * @file link_layer.h
- * @brief Data link layer protocol definition
+ * @brief The datalink program data link layer header file
+ *
+ * This is the data link layer of the project.
+ * 
+ * The API is defined in the documentation below.
  *
  */
 #pragma once
@@ -17,9 +21,9 @@
 
 typedef enum { START, FLAG_RCV, A_RCV, C_RCV, BCC_OK, STOP } state_t;
 
-typedef enum { SET, UA, RR, REJ, DISC } command_t;
+typedef enum { I, SET, DISC, UA, RR, REJ } command_t;
 
-typedef enum { COMMAND, DATA, INVALID } type_t;
+typedef enum { CONTROL, DATA, INVALID } type_t;
 
 typedef enum { IO_ERR, BCC1_ERR, BCC2_ERR } err_t;
 
@@ -38,9 +42,9 @@ typedef enum {
 
 typedef struct {
   struct {
-    unsigned char *message;
-    unsigned int message_size;
-  } data;
+    unsigned char *packet;
+    unsigned int data_size;
+  } packet;
 
   type_t type;
   command_t command;
@@ -85,7 +89,7 @@ int set_link_layer(link_layer_t *ll, char *port, const conn_type_t ct);
  * @brief Establish a serial port connection
  *
  * @param ll Link layer struct
- * @return int File descriptor for the serial port, 0 on error
+ * @return int File descriptor for the serial port on success, -1 on error
  */
 int llopen(link_layer_t *ll);
 
@@ -93,17 +97,20 @@ int llopen(link_layer_t *ll);
  * @brief Writes a message through the serial port
  *
  * @param ll Link layer struct
- * @return int 0 if successful, error otherwise
+ * @param buf Character buffer to write
+ * @param buf_size Size of character buffer
+ * @return int Number of characters written on success, -1 on error
  */
-int llwrite(link_layer_t *ll);
+int llwrite(link_layer_t *ll, char *buf, int buf_size);
 
 /**
  * @brief Reads a message through the serial port
  *
  * @param ll Link layer struct
- * @return int 0 if successful, error otherwise
+ * @param buf Received character buffer
+ * @return int Number of characters read on success, -1 on error
  */
-int llread(link_layer_t *ll);
+int llread(link_layer_t *ll, char *buf);
 
 /**
  * @brief Closes the serial port connection
