@@ -31,7 +31,7 @@ void set_config(config_t *config, const char **argv) {
 
   // Build the serial port file name from the port number given
   char str[64];
-  sprintf(str, "/dev/ttys%s", argv[2]);
+  sprintf(str, "/dev/ttyS%s", argv[2]);
 
   // Check if serial port exists
   if (!file_exists(str)) {
