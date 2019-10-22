@@ -84,16 +84,19 @@ int llopen(link_layer_t *ll) {
     while (!connected) {
       if (tries == 0) {
         // Send SET
+        printf("Sending SET...\n");
         send_command(ll, SET);
       }
 
       // Receive UA
+      printf("Waiting for UA...\n");
       message_t *msg = (message_t *)malloc(sizeof(message_t));
       receive_message(ll, msg);
 
       if (msg->command == UA) {
+        printf("Received UA!\n");
         connected = 1;
-        break;;
+        break;
       }
 
       tries++;
@@ -104,10 +107,12 @@ int llopen(link_layer_t *ll) {
   case RECEIVE: {
     while (!connected) {
       // Receive SET
+      printf("Waiting for SET...\n");
       message_t *msg = (message_t *)malloc(sizeof(message_t));
       receive_message(ll, msg);
 
       if (msg->command == SET) {
+        printf("Received SET, sending back UA...\n");
         // Send UA
         send_command(ll, UA);
 
@@ -138,14 +143,17 @@ int llclose(link_layer_t *ll) {
   case SEND: {
     while (!disconnected) {
       // Send DISC
+      printf("Sending DISC...\n");
       send_command(ll, DISC);
 
       // Receive DISC
+      printf("Waiting for DISC...\n");
       message_t *msg = (message_t *)malloc(sizeof(message_t));
       receive_message(ll, msg);
 
       if (msg->command == DISC) {
         // Send UA
+        printf("Received DISC, sending back UA...\n");
         send_command(ll, UA);
 
         disconnected = 1;
@@ -163,6 +171,7 @@ int llclose(link_layer_t *ll) {
       receive_message(ll, msg);
 
       if (msg->command == DISC) {
+        printf("Received DISC, sending back DISC...\n");
         // Send DISC
         send_command(ll, DISC);
 
