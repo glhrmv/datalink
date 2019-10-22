@@ -84,6 +84,7 @@ int llopen(link_layer_t *ll) {
       if (tries == 0) {
         // Send SET
         printf("Sending SET...\n");
+        sleep(1);
         send_command(ll, SET);
       }
 
@@ -113,6 +114,7 @@ int llopen(link_layer_t *ll) {
       if (msg->command == SET) {
         printf("Received SET, sending back UA...\n");
         // Send UA
+        sleep(1);
         send_command(ll, UA);
 
         connected = 1;
@@ -153,6 +155,7 @@ int llclose(link_layer_t *ll) {
       if (msg->command == DISC) {
         // Send UA
         printf("Received DISC, sending back UA...\n");
+        sleep(1);
         send_command(ll, UA);
 
         disconnected = 1;
@@ -173,6 +176,7 @@ int llclose(link_layer_t *ll) {
       if (msg->command == DISC) {
         printf("Received DISC, sending back DISC...\n");
         // Send DISC
+        sleep(1);
         send_command(ll, DISC);
 
         // Receive UA
