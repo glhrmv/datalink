@@ -312,9 +312,7 @@ int receive_message(link_layer_t *ll, message_t *msg) {
     case START: {
       if (c == FLAG) {
         printf("START: FLAG received. Going to FLAG_RCV.\n");
-
         msg_buf[size++] = c;
-
         state = FLAG_RCV;
       }
       break;
@@ -322,13 +320,11 @@ int receive_message(link_layer_t *ll, message_t *msg) {
     case FLAG_RCV: {
       if (c == A) {
         printf("FLAG_RCV: A received. Going to A_RCV.\n");
-
         msg_buf[size++] = c;
-
         state = A_RCV;
       } else if (c != FLAG) {
+        printf("C_RCV: ? received. Going back to START.\n");
         size = 0;
-
         state = START;
       }
       break;
@@ -336,17 +332,15 @@ int receive_message(link_layer_t *ll, message_t *msg) {
     case A_RCV: {
       if (c != FLAG) {
         printf("A_RCV: C received. Going to C_RCV.\n");
-
         msg_buf[size++] = c;
-
         state = C_RCV;
       } else if (c == FLAG) {
+        printf("C_RCV: FLAG received. Going back to FLAG_RCV.\n");
         size = 1;
-
         state = FLAG_RCV;
       } else {
+        printf("C_RCV: ? received. Going back to START.\n");
         size = 0;
-
         state = START;
       }
       break;
@@ -354,21 +348,15 @@ int receive_message(link_layer_t *ll, message_t *msg) {
     case C_RCV: {
       if (c == (msg_buf[1] ^ msg_buf[2])) {
         printf("C_RCV: BCC received. Going to BCC_OK.\n");
-
         msg_buf[size++] = c;
-
         state = BCC_OK;
       } else if (c == FLAG) {
         printf("C_RCV: FLAG received. Going back to FLAG_RCV.\n");
-
         size = 1;
-
         state = FLAG_RCV;
       } else {
         printf("C_RCV: ? received. Going back to START.\n");
-
         size = 0;
-
         state = START;
       }
       break;
@@ -413,6 +401,7 @@ int receive_message(link_layer_t *ll, message_t *msg) {
     }
   }
 
+  printf("Destuffing message...\n");
   size = destuff_buffer(msg_buf, size);
 
   char address_field = msg_buf[1];
@@ -430,6 +419,7 @@ int receive_message(link_layer_t *ll, message_t *msg) {
     return -1;
   }
 
+  printf("If message is command or data\n");
   if (msg->type == COMMAND) {
     // Get message command
     msg->command = get_command(msg_buf[2]);
