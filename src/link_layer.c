@@ -135,7 +135,8 @@ int llwrite(link_layer_t *ll, char *buf, int buf_size) {
 
   while(uploading)
   {
-    if (try == 0)
+    if (try == 0) //ou ainda nao acabou tempo, pois pode receber REJ e 
+                  //é necessario reenviar a trama
       {
         if(try >= ll->retries)
         {
@@ -161,8 +162,42 @@ int llwrite(link_layer_t *ll, char *buf, int buf_size) {
 }
 
 int llread(link_layer_t *ll, char *buf) {
-  message_t *msg = (message_t*) malloc (sizeof(message_t));
-
+  int terminate = 0;
+  while(!terminate){
+    message_t *msg = (message_t*) malloc (sizeof(message_t));
+    receive_message(ll, msg);
+    switch (msg->type){
+      case COMMAND:
+      {
+        if(msg->command == DISC)
+          terminate = 1;
+        break;
+      }
+      case DATA:
+      {
+        if(msg->ns == ll->seq_number)
+        {
+          strcat(buf, msg->data.message);
+          ll->seq_number = !msg->ns;
+          send_command(ll, RR);
+				  terminate = 1;
+        }
+        else
+        printf("Ignoring because of NS");
+        break;
+      }
+      case INVALID:
+      {
+        if(msg->err == BCC2_ERR)
+        {
+          ll->seq_number = msg->ns;
+          send_command(ll, REJ);
+        }
+        break;
+      }
+    }
+  }
+  return 0;
 }
 
 int llclose(link_layer_t *ll) {

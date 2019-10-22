@@ -61,7 +61,6 @@ typedef struct message {
 typedef struct link_layer {
   int fd;         ///< Serial port device file descriptor
   conn_type_t ct; ///< Connection type (SEND, RECEIVE)
-
   unsigned int seq_number;   ///< Frame sequence number (0, 1)
   int baud_rate;             ///< Baud rate
   int message_data_max_size; ///< Maximum message data size
