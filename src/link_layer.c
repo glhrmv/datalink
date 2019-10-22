@@ -77,7 +77,6 @@ int llopen(link_layer_t *ll) {
 
   printf("Establishing connection...\n");
 
-  
   unsigned int connected = 0, tries = 0;
   switch (ll->ct) {
   case SEND: {
@@ -167,6 +166,7 @@ int llclose(link_layer_t *ll) {
   case RECEIVE: {
     while (!disconnected) {
       // Receive DISC
+      printf("Waiting for UA...\n");
       message_t *msg = (message_t *)malloc(sizeof(message_t));
       receive_message(ll, msg);
 
@@ -178,6 +178,7 @@ int llclose(link_layer_t *ll) {
         // Receive UA
         receive_message(ll, msg);
         if (msg->command == UA) {
+          printf("Received UA. Done.\n");
           disconnected = 1;
           continue;
         }
@@ -226,9 +227,14 @@ int send_command(link_layer_t *ll, command_t command) {
   char *command_buf = create_command(ll, cf);
   unsigned int command_buf_size = stuff_buffer(command_buf, COMMAND_SIZE);
 
-  write(ll->fd, command_buf, command_buf_size);
+  if (write(ll->fd, command_buf, command_buf_size) != COMMAND_SIZE) {
+    printf("Could not send command: %s  \n", command_str);
+    return -1;
+  }
 
   free(command_buf);
+
+  printf("Sent command: %s\n", command_str);
 
   return 0;
 }
@@ -278,11 +284,10 @@ int receive_message(link_layer_t *ll, message_t *msg) {
   msg->type = INVALID;
   msg->ns = msg->nr = -1;
 
-  state_t state = START;
-
-  unsigned int size = 0;
   char *msg_buf = malloc(ll->message_data_max_size);
 
+  unsigned int size = 0;
+  state_t state = START;
   volatile int done = 0;
   while (!done) {
     // Byte to read
@@ -390,8 +395,8 @@ int receive_message(link_layer_t *ll, message_t *msg) {
         // If more bytes are to be received
         if (size % ll->message_data_max_size == 0) {
           int mFactor = size / ll->message_data_max_size + 1;
-          msg_buf = (char *)realloc(
-              msg_buf, mFactor * ll->message_data_max_size);
+          msg_buf =
+              (char *)realloc(msg_buf, mFactor * ll->message_data_max_size);
         }
 
         msg_buf[size++] = c;
@@ -415,7 +420,7 @@ int receive_message(link_layer_t *ll, message_t *msg) {
   char bcc1 = msg_buf[3];
 
   if (bcc1 != (address_field ^ control_field)) {
-    printf("ERROR: invalid BCC1.\n");
+    printf("Invalid BCC1.\n");
 
     free(msg_buf);
 
@@ -446,7 +451,7 @@ int receive_message(link_layer_t *ll, message_t *msg) {
     char bcc2 = msg_buf[4 + msg->data.message_size];
 
     if (calc_bcc2 != bcc2) {
-      printf("ERROR: invalid BCC2: 0x%02x != 0x%02x.\n", calc_bcc2, bcc2);
+      printf("Invalid BCC2: 0x%02x != 0x%02x.\n", calc_bcc2, bcc2);
 
       free(msg_buf);
 

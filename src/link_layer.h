@@ -50,8 +50,8 @@ typedef struct message {
   command_t command;
   err_t err;
 
-  int ns;
-  int nr;
+  unsigned int ns;
+  unsigned int nr;
 } message_t;
 
 /**
