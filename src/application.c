@@ -57,9 +57,12 @@ void set_config(config_t *config, const char **argv) {
   printf("Name of file to send ? ");
   memset(str, 0, sizeof(str));
   scanf("%[^\n]%*c", str);
+    char *directory_file  = (char *) malloc(30);
+    strcpy(directory_file, "files/");
+    strcat(directory_file, str);
 
   // Check if file exists
-  if (!file_exists(str)) {
+  if (!file_exists(directory_file)) {
     printf("Invalid file name given. File %s does not exist.\n", str);
     exit(-1);
   }
@@ -95,7 +98,10 @@ int run(const config_t *config) {
 
 int send_file(link_layer_t *ll, const char *file_name) {
   // Open file
-  FILE *file = fopen(file_name, "rb");
+  char *directory_file = (char *) malloc(30);
+  strcpy(directory_file, "files/");
+  strcat(directory_file, file_name);
+  FILE *file = fopen(directory_file, "rb");
 
   // TODO: get size of file to be sent,
   //       and allocate a character buffer with

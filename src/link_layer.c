@@ -97,7 +97,6 @@ int llopen(link_layer_t *ll) {
         connected = 1;
         break;
       }
-
       tries++;
     }
     break;
@@ -130,9 +129,41 @@ int llopen(link_layer_t *ll) {
   return ll->fd;
 }
 
-int llwrite(link_layer_t *ll, char *buf, int buf_size) { return 0; }
+int llwrite(link_layer_t *ll, char *buf, int buf_size) {
+  unsigned int try = 0; 
+  int uploading = 1;
 
-int llread(link_layer_t *ll, char *buf) { return 0; }
+  while(uploading)
+  {
+    if (try == 0)
+      {
+        if(try >= ll->retries)
+        {
+          printf("ERROR: number of retries exceeded.\n");
+          return -1;
+        }
+        send_msg(ll, create_msg(ll, buf, buf_size), MESSAGE_SIZE);
+      }
+      message_t *message_recieved = (message_t *) malloc(sizeof(message_t));
+      
+      receive_message(ll, message_recieved);
+      if(message_recieved->command == RR)
+      {
+        if(ll->seq_number != message_recieved->nr)
+          ll->seq_number = message_recieved->nr;
+        uploading = 0;
+      }
+      else
+      if(message_recieved->command == REJ)
+        try++;
+  }
+  return 0; 
+}
+
+int llread(link_layer_t *ll, char *buf) {
+  message_t *msg = (message_t*) malloc (sizeof(message_t));
+
+}
 
 int llclose(link_layer_t *ll) {
   printf("Closing connection...\n");
@@ -154,7 +185,7 @@ int llclose(link_layer_t *ll) {
         // Send UA
         printf("Received DISC, sending back UA...\n");
         send_command(ll, UA);
-
+        sleep(1);
         disconnected = 1;
         continue;
       }
@@ -254,7 +285,7 @@ command_t get_command(control_field_t cf) {
   case C_DISC:
     return DISC;
   default:
-    return SET;
+    return REJ;
   }
 }
 
@@ -280,6 +311,36 @@ control_field_t get_command_w_control_field(char *command_str,
     strcpy(command_str, "ERROR");
     return C_SET;
   }
+}
+
+char *create_msg(link_layer_t *ll, char *buf, int buf_size){
+  char *buffer = malloc(MESSAGE_SIZE + buf_size);
+  char C = ll->seq_number << 6;
+  buffer[0] = FLAG;
+  buffer[1] = A;
+  buffer[2] = C;
+  buffer[3] = A ^ C;
+  memcpy(&buffer[4], buf, buf_size);
+  buffer[4+buf_size] = process_bcc(buf, buf_size);
+  buffer[5+buf_size] = FLAG;
+  return buffer;
+}
+
+int send_msg(link_layer_t *ll, char *msg, int msg_size){
+  char *msg_str = malloc(sizeof(MESSAGE_SIZE + msg_size));
+  unsigned int msg_str_size = stuff_buffer(msg, MESSAGE_SIZE + msg_size);
+  printf("Writing ");
+  if (write(ll->fd, msg_str, msg_str_size) != msg_str_size) {
+    printf("Could not send message:\n");
+    return -1;
+  }
+
+  free(msg_str);
+
+  //enviou mensagem
+  printf(".");
+
+  return 0;
 }
 
 int receive_message(link_layer_t *ll, message_t *msg) {
