@@ -76,8 +76,6 @@ int run(const config_t *config) {
     return -1;
   }
 
-  printf("Calling llopen...\n");
-
   // Establish connection
   if (llopen(ll) < 0)
     return -1;
@@ -90,8 +88,6 @@ int run(const config_t *config) {
     if (receive_file(ll) < 0)
       return -1;
   }
-
-  printf("Calling llclose...\n"); 
 
   // Close connection
   return llclose(ll);
@@ -171,6 +167,10 @@ int receive_control_packet(link_layer_t *ll, packet_t *packet) {
   // Receive packet
   char *packet_buf = NULL;
   int packet_buf_size = llread(ll, packet_buf);
+  if (packet_buf_size < 0) {
+    printf("Could not read from link layer.\n");
+    return -1;
+  }
 
   // Get packet type
   unsigned int pos = 0;

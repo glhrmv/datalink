@@ -42,7 +42,7 @@ typedef enum message_size {
 
 typedef struct message {
   struct {
-    unsigned char *message;
+    char *message;
     unsigned int message_size;
   } data;
 
@@ -120,7 +120,7 @@ int llread(link_layer_t *ll, char *buf);
  */
 int llclose(link_layer_t *ll);
 
-unsigned char *create_command(link_layer_t *ll, control_field_t cf);
+char *create_command(link_layer_t *ll, control_field_t cf);
 int send_command(link_layer_t *ll, command_t command);
 command_t get_command(control_field_t cf);
 control_field_t get_command_w_control_field(char *command_str,
@@ -128,7 +128,7 @@ control_field_t get_command_w_control_field(char *command_str,
 
 int receive_message(link_layer_t *ll, message_t *msg);
 
-unsigned char process_bcc(const unsigned char* buf, unsigned int buf_size);
+char process_bcc(const char* buf, unsigned int buf_size);
 
-unsigned int stuff_buffer(unsigned char *buf, unsigned int buf_size);
-unsigned int destuff_buffer(unsigned char *buf, unsigned int buf_size);
+unsigned int stuff_buffer(char *buf, unsigned int buf_size);
+unsigned int destuff_buffer(char *buf, unsigned int buf_size);

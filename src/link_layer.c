@@ -205,8 +205,8 @@ int llclose(link_layer_t *ll) {
   return 0;
 }
 
-unsigned char *create_command(link_layer_t *ll, control_field_t cf) {
-  unsigned char *command = malloc(COMMAND_SIZE);
+char *create_command(link_layer_t *ll, control_field_t cf) {
+  char *command = malloc(COMMAND_SIZE);
 
   command[0] = FLAG;
   command[1] = A;
@@ -223,7 +223,7 @@ int send_command(link_layer_t *ll, command_t command) {
   char command_str[MAX_SIZE];
   control_field_t cf = get_command_w_control_field(command_str, command);
 
-  unsigned char *command_buf = create_command(ll, cf);
+  char *command_buf = create_command(ll, cf);
   unsigned int command_buf_size = stuff_buffer(command_buf, COMMAND_SIZE);
 
   write(ll->fd, command_buf, command_buf_size);
@@ -281,12 +281,12 @@ int receive_message(link_layer_t *ll, message_t *msg) {
   state_t state = START;
 
   unsigned int size = 0;
-  unsigned char *msg_buf = malloc(ll->message_data_max_size);
+  char *msg_buf = malloc(ll->message_data_max_size);
 
   volatile int done = 0;
   while (!done) {
     // Byte to read
-    unsigned char c;
+    char c;
 
     if (state != STOP) {
       // Read 1 byte into c
@@ -378,7 +378,6 @@ int receive_message(link_layer_t *ll, message_t *msg) {
         msg_buf[size++] = c;
 
         state = STOP;
-
       } else {
         if (msg->type == INVALID)
           msg->type = DATA;
@@ -388,10 +387,10 @@ int receive_message(link_layer_t *ll, message_t *msg) {
           continue;
         }
 
-        // if writing at the end and more bytes will still be received
+        // If more bytes are to be received
         if (size % ll->message_data_max_size == 0) {
           int mFactor = size / ll->message_data_max_size + 1;
-          msg_buf = (unsigned char *)realloc(
+          msg_buf = (char *)realloc(
               msg_buf, mFactor * ll->message_data_max_size);
         }
 
@@ -411,9 +410,9 @@ int receive_message(link_layer_t *ll, message_t *msg) {
 
   size = destuff_buffer(msg_buf, size);
 
-  unsigned char address_field = msg_buf[1];
-  unsigned char control_field = msg_buf[2];
-  unsigned char bcc1 = msg_buf[3];
+  char address_field = msg_buf[1];
+  char control_field = msg_buf[2];
+  char bcc1 = msg_buf[3];
 
   if (bcc1 != (address_field ^ control_field)) {
     printf("ERROR: invalid BCC1.\n");
@@ -427,10 +426,10 @@ int receive_message(link_layer_t *ll, message_t *msg) {
   }
 
   if (msg->type == COMMAND) {
-    // get message command
+    // Get message command
     msg->command = get_command(msg_buf[2]);
 
-    // get command control field
+    // Get command control field
     control_field_t cf = msg_buf[2];
 
     char command_str[MAX_SIZE];
@@ -443,8 +442,8 @@ int receive_message(link_layer_t *ll, message_t *msg) {
   } else if (msg->type == DATA) {
     msg->data.message_size = size - MESSAGE_SIZE;
 
-    unsigned char calc_bcc2 = process_bcc(&msg_buf[4], msg->data.message_size);
-    unsigned char bcc2 = msg_buf[4 + msg->data.message_size];
+    char calc_bcc2 = process_bcc(&msg_buf[4], msg->data.message_size);
+    char bcc2 = msg_buf[4 + msg->data.message_size];
 
     if (calc_bcc2 != bcc2) {
       printf("ERROR: invalid BCC2: 0x%02x != 0x%02x.\n", calc_bcc2, bcc2);
@@ -469,14 +468,14 @@ int receive_message(link_layer_t *ll, message_t *msg) {
   return 0;
 }
 
-unsigned int stuff_buffer(unsigned char *buf, unsigned int buf_size) {
+unsigned int stuff_buffer(char *buf, unsigned int buf_size) {
   unsigned int new_buf_size = buf_size;
 
   for (unsigned int i = 1; i < buf_size - 1; i++)
     if (buf[i] == FLAG || buf[i] == ESCAPE)
       new_buf_size++;
 
-  buf = (unsigned char *)realloc(buf, new_buf_size);
+  buf = (char *)realloc(buf, new_buf_size);
 
   for (unsigned int i = 1; i < buf_size - 1; i++) {
     if (buf[i] == FLAG || buf[i] == ESCAPE) {
@@ -492,7 +491,7 @@ unsigned int stuff_buffer(unsigned char *buf, unsigned int buf_size) {
   return new_buf_size;
 }
 
-unsigned int destuff_buffer(unsigned char *buf, unsigned int buf_size) {
+unsigned int destuff_buffer(char *buf, unsigned int buf_size) {
   for (unsigned int i = 1; i < buf_size - 1; ++i) {
     if (buf[i] == ESCAPE) {
       memmove(buf + i, buf + i + 1, buf_size - i - 1);
@@ -503,13 +502,13 @@ unsigned int destuff_buffer(unsigned char *buf, unsigned int buf_size) {
     }
   }
 
-  buf = (unsigned char *)realloc(buf, buf_size);
+  buf = (char *)realloc(buf, buf_size);
 
   return buf_size;
 }
 
-unsigned char process_bcc(const unsigned char *buf, unsigned int buf_size) {
-  unsigned char bcc = 0;
+char process_bcc(const char *buf, unsigned int buf_size) {
+  char bcc = 0;
 
   unsigned int i = 0;
   for (; i < buf_size; i++)
