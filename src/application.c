@@ -106,11 +106,33 @@ int send_file(link_layer_t *ll, const char *file_name) {
   // TODO: get size of file to be sent,
   //       and allocate a character buffer with
   //       the same size
+  int file_size = get_file_size(file);
 
   // TODO: send START control packet
   //       (with file size and name in value field)
+  packet_t *packet =(packet_t *)malloc(sizeof(packet_t));
+  packet->type = PACKET_TYPE_DATA;
+  packet->file_name = file_name;
+  packet->file_size = file_size;
+  char *file_size_buf = (char *)malloc(sizeof(char));
+  sprintf(file_size_buf, "%d", file_size);
+  start_packet->file_size_buf = filesize_buf;
+  send_control_packet(ll, start_packet);
 
   // TODO: send file chunks to llwrite
+  char *file_chunk = malloc(MAX_SIZE);
+
+  unsigned int read_bytes = 0; written_bytes = 0, i = 0;
+
+  while((read_bytes = fread(file_chunk, sizeof(char), MAX_SIZE, file)) > 0) {
+    if(!send_data_packet(ll, (i++) % 255, file_chunk, read_bytes)){
+      free(file_chunk);
+      return -1;
+    }
+
+    memset(file_chunk, 0, MAX_SIZE);
+    written_bytes += read_bytes;
+  }
 
   // TODO: free the character buffer
 
@@ -118,6 +140,9 @@ int send_file(link_layer_t *ll, const char *file_name) {
   fclose(file);
 
   // TODO: send END control packet
+  packet->type = PACKET_TYPE_END;
+
+  send_control_packet(ll, packet);
 
   return 0;
 }
@@ -209,6 +234,77 @@ int receive_control_packet(link_layer_t *ll, packet_t *packet) {
   }
 
   return 0;
+}
+
+int sendDataPackage(link_layer_t *ll, int N, const char* buffer, int length) {
+	unsigned char C = PACKET_TYPE_DATA;
+	unsigned char L2 = length / 256;
+	unsigned char L1 = length % 256;
+
+	// calculate package size
+	unsigned int packageSize = 4 + length;
+
+	// allocate space for package header and file chunk
+	unsigned char* package = (unsigned char*) malloc(packageSize);
+
+	// build package header
+	package[0] = C;
+	package[1] = N;
+	package[2] = L2;
+	package[3] = L1;
+
+	// copy file chunk to package
+	memcpy(&package[4], buffer, length);
+
+	// write package
+	if (!llwrite(ll, package, packageSize)) {
+		printf(
+				"ERROR: Could not write to link layer while sending data package.\n");
+		free(package);
+
+		return -1;
+	}
+
+	free(package);
+
+	return 0;
+}
+
+int receiveDataPackage(link_layer_t *ll, int* N, char** buf, int* length) {
+	unsigned char* package;
+
+	// read package from link layer
+	ui size = llread(fd, &package);
+	if (size < 0) {
+		printf(
+				"ERROR: Could not read from link layer while receiving data package.\n");
+		return 0;
+	}
+
+	int C = package[0];
+	*N = (unsigned char) package[1];
+	int L2 = package[2];
+	int L1 = package[3];
+
+	// assert package is a data package
+	if (C != CTRL_PKG_DATA) {
+		printf("ERROR: Received package is not a data package (C = %d).\n", C);
+		return 0;
+	}
+
+	// calculate size of the file chunk contained in the read package
+	*length = 256 * L2 + L1;
+
+	// allocate space for that file chunk
+	*buf = malloc(*length);
+
+	// copy file chunk to the buffer
+	memcpy(*buf, &package[4], *length);
+
+	// destroy the received package
+	free(package);
+
+	return 1;
 }
 
 int main(int argc, const char **argv) {
