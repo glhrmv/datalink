@@ -150,11 +150,67 @@ int send_file(link_layer_t *ll, const char *file_name) {
 int receive_file(link_layer_t *ll) {
   // TODO: receive START control packet
   //       (with file size and name in value field)
+  packet_t *packet = (packet_t *)malloc(sizeof(packet_t));
+
+  if(receive_control_packet(ll, packet) != 0){
+    printf("Error: Control packet received\n");
+    return -1;
+  }
 
   // TODO: create a file with the proper name
+  FILE *file_created = fopen(packet->file_name, "wb");
+  if(file_created == NULL){
+    printf("Error: Could not create file.\n");
+    return -1;
+  }
+
+  printf("Created file: %s", packet->file_name);
+  printf("With size: %d\n", packet->file_size);
 
   // TODO: read from from llread
   //       (should read as many bytes as file size given)
+
+  int file_read_so_far = 0, n = -1;
+  while(file_read_so_far != packet->file_size){
+    int last_n = n;
+    char *file_buf = NULL;
+    int length = 0;
+
+    if(!receive_data_packet(ll, &n, &file_buf, &length)){
+      printf("Error: Data packet not received.\n");
+      return -1;
+    }
+    if(n != 0 && last_n +1 != 0){
+      printf("Received wrong sequence number.\n");
+      free(file_buf);
+      return -1;
+    }
+
+    fwrite(file_buf, sizeof(char), length, file_created);
+    free(file_buf);
+
+    file_read_so_far += length; 
+  }
+
+    fclose(file_created);
+
+    packet_t *end_packet = (packet_t *)malloc(sizeof(packet_t));
+
+    receive_control_packet(ll, end_packet);
+
+    if(packet->type != PACKET_TYPE_END){
+      printf("Error: END control packet not received.\n");
+      return -1;
+    }
+
+    if(llclose(ll) != 0){
+      printf("Error: Serial port not closed.\n");
+      return -1;
+    }
+
+    printf("File received! :)\n");
+    return 0;
+  }
 
   // TODO: create
 
@@ -270,26 +326,24 @@ int sendDataPackage(link_layer_t *ll, int N, const char* buffer, int length) {
 	return 0;
 }
 
-int receiveDataPackage(link_layer_t *ll, int* N, char** buf, int* length) {
+int receiveDataPackage(link_layer_t *ll, int *n, char **buf, int *length) {
 	unsigned char* package;
 
 	// read package from link layer
-	ui size = llread(fd, &package);
-	if (size < 0) {
-		printf(
-				"ERROR: Could not read from link layer while receiving data package.\n");
-		return 0;
-	}
-
+	if(llread(ll, &package) != 0){
+    printf("Error reading package.\n");
+    return -1;
+  }
+	
 	int C = package[0];
-	*N = (unsigned char) package[1];
+	*n = (unsigned char) package[1];
 	int L2 = package[2];
 	int L1 = package[3];
 
 	// assert package is a data package
-	if (C != CTRL_PKG_DATA) {
-		printf("ERROR: Received package is not a data package (C = %d).\n", C);
-		return 0;
+	if (C != PACKET_TYPE_DATA) {
+		printf("ERROR: Packet is not a data packet (C = %d).\n", C);
+		return -1;
 	}
 
 	// calculate size of the file chunk contained in the read package
@@ -304,7 +358,7 @@ int receiveDataPackage(link_layer_t *ll, int* N, char** buf, int* length) {
 	// destroy the received package
 	free(package);
 
-	return 1;
+	return 0;
 }
 
 int main(int argc, const char **argv) {
