@@ -67,8 +67,7 @@ void set_config(config_t *config, const char **argv);
  */
 int run(const config_t *config);
 
-int send_file(link_layer_t *ll, const char *file_name);
-
+int send_file(link_layer_t *ll, char *file_name);
 int receive_file(link_layer_t *ll);
 
 int send_control_packet(link_layer_t *ll, const packet_t *packet);
