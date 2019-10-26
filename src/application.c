@@ -114,8 +114,8 @@ int send_file(link_layer_t *ll, char *file_name) {
   packet->type = PACKET_TYPE_DATA;
   packet->file_name = file_name;
   packet->file_size = file_size;
-  char *file_size_buf = (char *)malloc(sizeof(char));
-  sprintf(file_size_buf, "%d", file_size);
+  char file_size_buf[sizeof(int) * 3 + 2];
+  snprintf(file_size_buf, sizeof file_size_buf, "%d", file_size);
   packet->file_size_buf = file_size_buf;
   send_control_packet(ll, packet);
 
@@ -152,23 +152,19 @@ int receive_file(link_layer_t *ll) {
   // (with file size and name in value field)
   packet_t *packet = (packet_t *)malloc(sizeof(packet_t));
 
-  if (receive_control_packet(ll, packet) != 0) {
-    printf("Error: Control packet received\n");
+  if (receive_control_packet(ll, packet) < 0) {
+    printf("Error: Control packet not received\n");
     return -1;
   }
 
-  printf("Created file: %s", packet->file_name);
-  printf("With size: %d\n", packet->file_size);
+  printf("Receiving file: %s ", packet->file_name);
+  printf("(size: %d)\n", packet->file_size);
 
-  return 0;
-  
   // Create a file with the proper name
   FILE *file_created = fopen(packet->file_name, "wb");
   if (file_created == NULL) {
     printf("Error: Could not create file.\n");
     return -1;
-  }
-
 
   // Read from from llread
   // (should read as many bytes as file size given)
@@ -197,7 +193,6 @@ int receive_file(link_layer_t *ll) {
   fclose(file_created);
 
   packet_t *end_packet = (packet_t *)malloc(sizeof(packet_t));
-
   receive_control_packet(ll, end_packet);
 
   if (packet->type != PACKET_TYPE_END) {

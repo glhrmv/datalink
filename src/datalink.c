@@ -136,6 +136,7 @@ int llwrite(link_layer_t *ll, char *buf, int buf_size) {
   unsigned int uploading = 1, tries = 0;
   while (uploading) {
     if (tries == 0) {
+      printf("Sending message..\n");
       send_message(ll, buf, buf_size);
     }
 
@@ -143,15 +144,17 @@ int llwrite(link_layer_t *ll, char *buf, int buf_size) {
     receive_message(ll, msg);
 
     if (msg->command == RR) {
-      printf("Received RR...\n");
+      printf("Received RR.\n");
       if (ll->seq_number == msg->nr)
         ll->seq_number = msg->nr;
 
       uploading = 0;
     } else if (msg->command == REJ) {
-      printf("Received REJ...\n");
+      printf("Received REJ.\n");
       tries = 0;
     }
+
+    tries++;
   }
 
   printf("llwrite done.\n");
@@ -171,6 +174,7 @@ int llread(link_layer_t *ll, char *buf) {
     case INVALID:
       if (msg->err == BCC2_ERR) {
         ll->seq_number = msg->ns;
+        printf("Sending REJ...\n");
         send_command(ll, REJ);
       }
       break;
@@ -185,6 +189,7 @@ int llread(link_layer_t *ll, char *buf) {
         free(msg->data.message);
 
         ll->seq_number = !msg->ns;
+        printf("Sending RR...\n");
         send_command(ll, RR);
 
         done = 1;
