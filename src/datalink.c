@@ -97,6 +97,7 @@ int llopen(link_layer_t *ll) {
         connected = 1;
         break;
       }
+
       tries++;
     }
     break;
@@ -130,73 +131,70 @@ int llopen(link_layer_t *ll) {
 }
 
 int llwrite(link_layer_t *ll, char *buf, int buf_size) {
-  unsigned int try = 0; 
-  int uploading = 1;
+  printf("llwrite starting...\n");
 
-  while(uploading)
-  {
-    if (try == 0) //ou ainda nao acabou tempo, pois pode receber REJ e 
-                  //é necessario reenviar a trama
-      {
-        if(try >= ll->retries)
-        {
-          printf("ERROR: number of retries exceeded.\n");
-          return -1;
-        }
-        send_msg(ll, create_msg(ll, buf, buf_size), MESSAGE_SIZE);
-      }
-      message_t *message_recieved = (message_t *) malloc(sizeof(message_t));
-      
-      receive_message(ll, message_recieved);
-      if(message_recieved->command == RR)
-      {
-        if(ll->seq_number != message_recieved->nr)
-          ll->seq_number = message_recieved->nr;
-        uploading = 0;
-      }
-      else
-      if(message_recieved->command == REJ)
-        try++;
+  unsigned int uploading = 1, tries = 0;
+  while (uploading) {
+    if (tries == 0) {
+      send_message(ll, buf, buf_size);
+    }
+
+    message_t *msg = (message_t *)malloc(sizeof(message_t));
+    receive_message(ll, msg);
+
+    if (msg->command == RR) {
+      printf("Received RR...\n");
+      if (ll->seq_number == msg->nr)
+        ll->seq_number = msg->nr;
+
+      uploading = 0;
+    } else if (msg->command == REJ) {
+      printf("Received REJ...\n");
+      tries = 0;
+    }
   }
-  return 0; 
+
+  printf("llwrite done.\n");
+
+  return 0;
 }
 
 int llread(link_layer_t *ll, char *buf) {
-  int terminate = 0;
-  while(!terminate){
-    message_t *msg = (message_t*) malloc (sizeof(message_t));
+  printf("llread starting...\n");
+
+  int done = 0;
+  while (!done) {
+    message_t *msg = (message_t *)malloc(sizeof(message_t));
     receive_message(ll, msg);
-    switch (msg->type){
-      case COMMAND:
-      {
-        if(msg->command == DISC)
-          terminate = 1;
-        break;
+
+    switch (msg->type) {
+    case INVALID:
+      if (msg->err == BCC2_ERR) {
+        ll->seq_number = msg->ns;
+        send_command(ll, REJ);
       }
-      case DATA:
-      {
-        if(msg->ns == ll->seq_number)
-        {
-          strcat(buf, msg->data.message);
-          ll->seq_number = !msg->ns;
-          send_command(ll, RR);
-				  terminate = 1;
-        }
-        else
-        printf("Ignoring because of NS");
-        break;
+      break;
+    case COMMAND:
+      if (msg->command == DISC)
+        done = 1;
+      break;
+    case DATA:
+      if (ll->seq_number == msg->ns) {
+        buf = malloc(msg->data.message_size);
+        memcpy(buf, msg->data.message, msg->data.message_size);
+        free(msg->data.message);
+
+        ll->seq_number = !msg->ns;
+        send_command(ll, RR);
+
+        done = 1;
       }
-      case INVALID:
-      {
-        if(msg->err == BCC2_ERR)
-        {
-          ll->seq_number = msg->ns;
-          send_command(ll, REJ);
-        }
-        break;
-      }
+      break;
     }
   }
+
+  printf("llread done.\n");
+
   return 0;
 }
 
@@ -256,6 +254,7 @@ int llclose(link_layer_t *ll) {
     break;
   }
   }
+
   printf("Connection closed.\n");
 
   // Switch back to old termios
@@ -274,17 +273,17 @@ int llclose(link_layer_t *ll) {
 }
 
 char *create_command(link_layer_t *ll, control_field_t cf) {
-  char *command = malloc(COMMAND_SIZE);
+  char *buf = malloc(COMMAND_SIZE);
 
-  command[0] = FLAG;
-  command[1] = A;
-  command[2] = cf;
+  buf[0] = FLAG;
+  buf[1] = A;
+  buf[2] = cf;
   if (cf == C_REJ || cf == C_RR)
-    command[2] |= (ll->seq_number << 7);
-  command[3] = command[1] ^ command[2];
-  command[4] = FLAG;
+    buf[2] |= (ll->seq_number << 7);
+  buf[3] = buf[1] ^ buf[2];
+  buf[4] = FLAG;
 
-  return command;
+  return buf;
 }
 
 int send_command(link_layer_t *ll, command_t command) {
@@ -348,32 +347,34 @@ control_field_t get_command_w_control_field(char *command_str,
   }
 }
 
-char *create_msg(link_layer_t *ll, char *buf, int buf_size){
-  char *buffer = malloc(MESSAGE_SIZE + buf_size);
+char *create_message(link_layer_t *ll, char *msg, unsigned int msg_size) {
+  char *buf = malloc(MESSAGE_SIZE + msg_size);
+
   char C = ll->seq_number << 6;
-  buffer[0] = FLAG;
-  buffer[1] = A;
-  buffer[2] = C;
-  buffer[3] = A ^ C;
-  memcpy(&buffer[4], buf, buf_size);
-  buffer[4+buf_size] = process_bcc(buf, buf_size);
-  buffer[5+buf_size] = FLAG;
-  return buffer;
+
+  buf[0] = FLAG;
+  buf[1] = A;
+  buf[2] = C;
+  buf[3] = A ^ C;
+  memcpy(&msg[4], msg, msg_size);
+  buf[4 + msg_size] = process_bcc(msg, msg_size);
+  buf[5 + msg_size] = FLAG;
+
+  return buf;
 }
 
-int send_msg(link_layer_t *ll, char *msg, int msg_size){
-  char *msg_str = malloc(sizeof(MESSAGE_SIZE + msg_size));
-  unsigned int msg_str_size = stuff_buffer(msg, MESSAGE_SIZE + msg_size);
-  printf("Writing ");
-  if (write(ll->fd, msg_str, msg_str_size) != msg_str_size) {
-    printf("Could not send message:\n");
-    return -1;
+int send_message(link_layer_t *ll, char *msg, unsigned int msg_size) {
+  char *msg_buf = create_message(ll, msg, msg_size);
+  msg_size += MESSAGE_SIZE;
+
+  msg_size = stuff_buffer(msg_buf, msg_size);
+  if (write(ll->fd, msg_buf, msg_size) != msg_size) {
+    printf("Could not send message.\n");
+    free(msg_buf);
+    return 1;
   }
 
-  free(msg_str);
-
-  //enviou mensagem
-  printf(".");
+  free(msg_buf);
 
   return 0;
 }

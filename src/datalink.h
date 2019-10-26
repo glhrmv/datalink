@@ -59,8 +59,8 @@ typedef struct message {
  *
  */
 typedef struct link_layer {
-  int fd;         ///< Serial port device file descriptor
-  conn_type_t ct; ///< Connection type (SEND, RECEIVE)
+  int fd;                    ///< Serial port device file descriptor
+  conn_type_t ct;            ///< Connection type (SEND, RECEIVE)
   unsigned int seq_number;   ///< Frame sequence number (0, 1)
   int baud_rate;             ///< Baud rate
   int message_data_max_size; ///< Maximum message data size
@@ -125,11 +125,11 @@ command_t get_command(control_field_t cf);
 control_field_t get_command_w_control_field(char *command_str,
                                             command_t command);
 
-char *create_msg(link_layer_t *ll, char *buf, int buf_size);
-int send_msg(link_layer_t *ll, char *msg, int msg_size);
+char *create_message(link_layer_t *ll, char *msg, unsigned int msg_size);
+int send_message(link_layer_t *ll, char *msg, unsigned int msg_size);
 int receive_message(link_layer_t *ll, message_t *msg);
 
-char process_bcc(const char* buf, unsigned int buf_size);
+char process_bcc(const char *buf, unsigned int buf_size);
 
 unsigned int stuff_buffer(char *buf, unsigned int buf_size);
 unsigned int destuff_buffer(char *buf, unsigned int buf_size);
