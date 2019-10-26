@@ -113,7 +113,6 @@ int send_file(link_layer_t *ll, char *file_name) {
   packet_t *packet = (packet_t *)malloc(sizeof(packet_t));
   packet->type = PACKET_TYPE_DATA;
   packet->file_name = file_name;
-  printf("file name okdod : %s\n", packet->file_name);
   packet->file_size = file_size;
   char file_size_buf[sizeof(int) * 3 + 2];
   snprintf(file_size_buf, sizeof file_size_buf, "%d", file_size);
@@ -121,7 +120,9 @@ int send_file(link_layer_t *ll, char *file_name) {
   send_control_packet(ll, packet);
 
   // Send file chunks to llwrite
-  char *file_chunk = malloc(MAX_SIZE);
+  printf("file chunk\n");
+  char *file_chunk = (char *)malloc(MAX_SIZE);
+  printf("file chunk creted\n");
 
   unsigned int read_bytes = 0, written_bytes = 0, i = 0;
 
@@ -212,6 +213,7 @@ int receive_file(link_layer_t *ll) {
 }
 
 int send_control_packet(link_layer_t *ll, const packet_t *packet) {
+  printf("Creating control packet...\n");
   // Calculate control packet size
   int packet_buf_size =
       5 + strlen(packet->file_size_buf) + strlen(packet->file_name);
@@ -239,7 +241,8 @@ int send_control_packet(link_layer_t *ll, const packet_t *packet) {
   if (llwrite(ll, packet_buf, packet_buf_size) < 0)
     return -1;
 
-  free(packet_buf);
+
+  printf("Sent control packet.\n");
 
   return 0;
 }
@@ -272,17 +275,20 @@ int receive_control_packet(link_layer_t *ll, packet_t *packet) {
         break;
       }
       case FILE_NAME_FIELD: {
-        packet->file_name = &packet_buf[pos];
-        
+        packet->file_name = &packet_buf[++pos];
+
         //memcpy(&packet->file_name, &packet_buf[pos], octets);
 
         break;
       }
     }
   }
+
+  return 0;
 }
 
 int send_data_packet(link_layer_t *ll, int N, const char *buffer, int length) {
+  printf("Creating a data packet to send...\n");
   char C = PACKET_TYPE_DATA;
   char L2 = length / 256;
   char L1 = length % 256;
@@ -301,6 +307,7 @@ int send_data_packet(link_layer_t *ll, int N, const char *buffer, int length) {
 
   // copy file chunk to package
   memcpy(&package[4], buffer, length);
+  printf("jfijfij\n");
 
   // write package
   if (!llwrite(ll, package, packageSize)) {
@@ -317,7 +324,7 @@ int send_data_packet(link_layer_t *ll, int N, const char *buffer, int length) {
 }
 
 int receive_data_packet(link_layer_t *ll, int *n, char **buf, int *length) {
-  char *packet = NULL;
+  char *packet;
 
   // read packet from link layer
   if (llread(ll, &packet) != 0) {
@@ -348,6 +355,7 @@ int receive_data_packet(link_layer_t *ll, int *n, char **buf, int *length) {
   // destroy the received packet
   free(packet);
 
+  printf("Data packet created!\n");
   return 0;
 }
 

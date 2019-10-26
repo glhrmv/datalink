@@ -17,7 +17,7 @@
 
 #include "conn_type.h"
 
-#define MAX_SIZE 256
+#define MAX_SIZE 255
 
 typedef enum state { START, FLAG_RCV, A_RCV, C_RCV, BCC_OK, STOP } state_t;
 
