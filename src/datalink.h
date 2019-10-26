@@ -127,6 +127,7 @@ control_field_t get_command_w_control_field(char *command_str,
 
 char *create_message(link_layer_t *ll, char *msg, unsigned int msg_size);
 int send_message(link_layer_t *ll, char *msg, unsigned int msg_size);
+
 int receive_message(link_layer_t *ll, message_t *msg);
 
 char process_bcc(const char *buf, unsigned int buf_size);

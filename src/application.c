@@ -157,6 +157,11 @@ int receive_file(link_layer_t *ll) {
     return -1;
   }
 
+  printf("Created file: %s", packet->file_name);
+  printf("With size: %d\n", packet->file_size);
+
+  return 0;
+  
   // Create a file with the proper name
   FILE *file_created = fopen(packet->file_name, "wb");
   if (file_created == NULL) {
@@ -164,8 +169,6 @@ int receive_file(link_layer_t *ll) {
     return -1;
   }
 
-  printf("Created file: %s", packet->file_name);
-  printf("With size: %d\n", packet->file_size);
 
   // Read from from llread
   // (should read as many bytes as file size given)
