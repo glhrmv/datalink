@@ -165,6 +165,7 @@ int receive_file(link_layer_t *ll) {
   if (file_created == NULL) {
     printf("Error: Could not create file.\n");
     return -1;
+  }
 
   // Read from from llread
   // (should read as many bytes as file size given)
