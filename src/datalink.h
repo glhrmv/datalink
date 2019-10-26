@@ -1,5 +1,5 @@
 /**
- * @file link_layer.h
+ * @file datalink.h
  * @brief The datalink program data link layer header file
  *
  * This is the data link layer of the project.

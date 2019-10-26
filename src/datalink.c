@@ -1,5 +1,5 @@
 /**
- * @file link_layer.h
+ * @file datalink.h
  * @brief The datalink program data link layer source file
  *
  * This is the data link layer of the project.
@@ -9,7 +9,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#include "link_layer.h"
+#include "datalink.h"
 #include "util.h"
 
 #define FLAG 0x7E

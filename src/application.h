@@ -11,7 +11,7 @@
 #pragma once
 
 #include "conn_type.h"
-#include "link_layer.h"
+#include "datalink.h"
 #include "util.h"
 
 typedef enum packet_type {
