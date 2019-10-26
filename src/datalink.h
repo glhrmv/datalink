@@ -109,7 +109,7 @@ int llwrite(link_layer_t *ll, char *buf, int buf_size);
  * @param buf Received character buffer
  * @return int Number of characters read on success, -1 on error
  */
-int llread(link_layer_t *ll, char *buf);
+int llread(link_layer_t *ll, char **buf);
 
 /**
  * @brief Closes the serial port connection

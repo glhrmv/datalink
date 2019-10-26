@@ -132,13 +132,13 @@ int llopen(link_layer_t *ll) {
 
 int llwrite(link_layer_t *ll, char *buf, int buf_size) {
   printf("llwrite starting...\n");
-
+  
   unsigned int uploading = 1, tries = 0;
   while (uploading) {
-    if (tries == 0) {
+    //if (tries == 0) {
       printf("Sending message..\n");
       send_message(ll, buf, buf_size);
-    }
+    //}
 
     message_t *msg = (message_t *)malloc(sizeof(message_t));
     receive_message(ll, msg);
@@ -155,6 +155,7 @@ int llwrite(link_layer_t *ll, char *buf, int buf_size) {
     }
 
     tries++;
+    sleep(2);
   }
 
   printf("llwrite done.\n");
@@ -162,7 +163,7 @@ int llwrite(link_layer_t *ll, char *buf, int buf_size) {
   return 0;
 }
 
-int llread(link_layer_t *ll, char *buf) {
+int llread(link_layer_t *ll, char **buf) {
   printf("llread starting...\n");
 
   int done = 0;
@@ -184,8 +185,8 @@ int llread(link_layer_t *ll, char *buf) {
       break;
     case DATA:
       if (ll->seq_number == msg->ns) {
-        buf = malloc(msg->data.message_size);
-        memcpy(buf, msg->data.message, msg->data.message_size);
+        *buf = malloc(msg->data.message_size);
+        memcpy(*buf, msg->data.message, msg->data.message_size);
         free(msg->data.message);
 
         ll->seq_number = !msg->ns;
@@ -197,6 +198,7 @@ int llread(link_layer_t *ll, char *buf) {
       break;
     }
   }
+  
 
   printf("llread done.\n");
 
@@ -361,7 +363,8 @@ char *create_message(link_layer_t *ll, char *msg, unsigned int msg_size) {
   buf[1] = A;
   buf[2] = C;
   buf[3] = A ^ C;
-  memcpy(&msg[4], msg, msg_size);
+  for(unsigned int i = 0; i < msg_size; i++)
+    buf[4+i]=msg[i];
   buf[4 + msg_size] = process_bcc(msg, msg_size);
   buf[5 + msg_size] = FLAG;
 
@@ -369,6 +372,7 @@ char *create_message(link_layer_t *ll, char *msg, unsigned int msg_size) {
 }
 
 int send_message(link_layer_t *ll, char *msg, unsigned int msg_size) {
+
   char *msg_buf = create_message(ll, msg, msg_size);
   msg_size += MESSAGE_SIZE;
 
@@ -607,9 +611,9 @@ unsigned int destuff_buffer(char *buf, unsigned int buf_size) {
 }
 
 char process_bcc(const char *buf, unsigned int buf_size) {
-  char bcc = 0;
+  char bcc = buf[0];
 
-  unsigned int i = 0;
+  unsigned int i = 1;
   for (; i < buf_size; i++)
     bcc ^= buf[i];
 

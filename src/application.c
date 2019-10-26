@@ -113,6 +113,7 @@ int send_file(link_layer_t *ll, char *file_name) {
   packet_t *packet = (packet_t *)malloc(sizeof(packet_t));
   packet->type = PACKET_TYPE_DATA;
   packet->file_name = file_name;
+  printf("file name okdod : %s\n", packet->file_name);
   packet->file_size = file_size;
   char file_size_buf[sizeof(int) * 3 + 2];
   snprintf(file_size_buf, sizeof file_size_buf, "%d", file_size);
@@ -221,6 +222,7 @@ int send_control_packet(link_layer_t *ll, const packet_t *packet) {
 
   // Set packet type
   packet_buf[pos++] = packet->type;
+  
 
   // Set file size field
   packet_buf[pos++] = FILE_SIZE_FIELD;
@@ -233,7 +235,6 @@ int send_control_packet(link_layer_t *ll, const packet_t *packet) {
   packet_buf[pos++] = strlen(packet->file_name);
   for (unsigned int i = 0; i < strlen(packet->file_name); i++)
     packet_buf[pos++] = packet->file_name[i];
-
   // Write it to the serial port
   if (llwrite(ll, packet_buf, packet_buf_size) < 0)
     return -1;
@@ -245,8 +246,8 @@ int send_control_packet(link_layer_t *ll, const packet_t *packet) {
 
 int receive_control_packet(link_layer_t *ll, packet_t *packet) {
   // Receive packet
-  char *packet_buf = NULL;
-  int packet_buf_size = llread(ll, packet_buf);
+  char *packet_buf;
+  int packet_buf_size = llread(ll, &packet_buf);
   if (packet_buf_size < 0) {
     printf("Could not read from link layer.\n");
     return -1;
@@ -257,32 +258,28 @@ int receive_control_packet(link_layer_t *ll, packet_t *packet) {
   packet->type = packet_buf[pos++];
 
   // Go through packet fields
-  while (true) {
+  for(int i = 0; i < 2;i++){
     switch (packet_buf[pos++]) {
-    case FILE_SIZE_FIELD: {
-      unsigned int octets = (unsigned int)packet_buf[pos++];
+      case FILE_SIZE_FIELD: {
+        unsigned int octets = (unsigned int)packet_buf[pos++];
 
-      char *length = malloc(octets);
-      memcpy(length, &packet_buf[pos], octets);
+        char *length = (char *)malloc(octets);
+        memcpy(length, &packet_buf[pos], octets);
 
-      packet->file_size = atoi(length);
-      free(length);
+        packet->file_size = atoi(length);
+        free(length);
+        pos += octets;
+        break;
+      }
+      case FILE_NAME_FIELD: {
+        packet->file_name = &packet_buf[pos];
+        
+        //memcpy(&packet->file_name, &packet_buf[pos], octets);
 
-      break;
-    }
-    case FILE_NAME_FIELD: {
-      char octets = (char)packet_buf[pos++];
-
-      memcpy(packet->file_name, &packet_buf[pos], octets);
-
-      break;
-    }
-    default:
-      return -1;
+        break;
+      }
     }
   }
-
-  return 0;
 }
 
 int send_data_packet(link_layer_t *ll, int N, const char *buffer, int length) {
@@ -323,7 +320,7 @@ int receive_data_packet(link_layer_t *ll, int *n, char **buf, int *length) {
   char *packet = NULL;
 
   // read packet from link layer
-  if (llread(ll, packet) != 0) {
+  if (llread(ll, &packet) != 0) {
     printf("Error reading packet.\n");
     return -1;
   }
