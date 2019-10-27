@@ -17,7 +17,7 @@
 #define ESCAPE 0x7D
 
 #define DEFAULT_BAUDRATE B38400
-#define DEFAULT_MSG_MAX_SIZE 512
+#define DEFAULT_MSG_MAX_SIZE 5
 #define DEFAULT_RETRIES 3
 #define DEFAULT_TIMEOUT 3
 
@@ -143,19 +143,20 @@ int llwrite(link_layer_t *ll, char *buf, int buf_size) {
     message_t *msg = (message_t *)malloc(sizeof(message_t));
     receive_message(ll, msg);
 
-    if (msg->command == RR) {
+    if (msg->type == COMMAND && msg->command == RR) {
       printf("Received RR.\n");
-      if (ll->seq_number == msg->nr)
+      if (ll->seq_number != msg->nr)
         ll->seq_number = msg->nr;
 
       uploading = 0;
-    } else if (msg->command == REJ) {
+    } else if (msg->type == COMMAND && msg->command == REJ) {
       printf("Received REJ.\n");
       tries = 0;
     }
 
+    sleep(1);
     tries++;
-    sleep(2);
+    
   }
 
   printf("llwrite done.\n");
@@ -198,8 +199,6 @@ int llread(link_layer_t *ll, char **buf) {
       break;
     }
   }
-  
-
   printf("llread done.\n");
 
   return 0;
@@ -261,17 +260,16 @@ int llclose(link_layer_t *ll) {
     break;
   }
   }
-
   printf("Connection closed.\n");
 
   // Switch back to old termios
-  if (tcsetattr(ll->fd, TCSANOW, &ll->old_termios) < 0) {
+  if (tcsetattr(ll->fd, TCSANOW, &ll->old_termios) != 0) {
     perror("tcsetattr");
     return -1;
   }
 
   // Close serial port file descriptor
-  if (close(ll->fd) < 0) {
+  if (close(ll->fd) != 0) {
     perror("close");
     return -1;
   }
@@ -384,6 +382,7 @@ int send_message(link_layer_t *ll, char *msg, unsigned int msg_size) {
   }
 
   free(msg_buf);
+  printf("Message sent.\n");
 
   return 0;
 }
@@ -392,7 +391,7 @@ int receive_message(link_layer_t *ll, message_t *msg) {
   msg->type = INVALID;
   msg->ns = msg->nr = -1;
 
-  char *msg_buf = malloc(ll->message_data_max_size);
+  char *msg_buf = (char *)malloc(ll->message_data_max_size);
 
   unsigned int size = 0;
   state_t state = START;
