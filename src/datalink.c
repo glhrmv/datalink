@@ -1,5 +1,5 @@
 /**
- * @file datalink.h
+ * @file datalink.c
  * @brief The datalink program data link layer source file
  *
  * This is the data link layer of the project.
@@ -11,6 +11,7 @@
 
 #include "datalink.h"
 #include "util.h"
+#include "alarm.h"
 
 #define FLAG 0x7E
 #define A 0x03
@@ -77,14 +78,25 @@ int llopen(link_layer_t *ll) {
 
   printf("Establishing connection...\n");
 
-  unsigned int connected = 0, tries = 0;
+  unsigned int connected = FALSE, tries = 0;
   switch (ll->ct) {
   case SEND: {
     while (!connected) {
-      if (tries == 0) {
+      if (tries == 0 || alarm_flag) {
+        alarm_flag = FALSE;
+        timeout = ll->timeout;
+        if(tries >= ll->retries){
+          stop_alarm();
+          printf("Error: Maximum number of tries exceeded\n");
+          printf("Abosting connection...\n");
+          return -1;
+        }
         // Send SET
         printf("Sending SET...\n");
         send_command(ll, SET);
+
+        if(++tries == 1)
+          init_alarm(ll);
       }
 
       // Receive UA
@@ -94,12 +106,12 @@ int llopen(link_layer_t *ll) {
 
       if (msg->command == UA) {
         printf("Received UA!\n");
-        connected = 1;
+        connected = TRUE;
         break;
       }
 
-      tries++;
     }
+    stop_alarm();
     break;
   }
 
@@ -133,12 +145,23 @@ int llopen(link_layer_t *ll) {
 int llwrite(link_layer_t *ll, char *buf, int buf_size) {
   printf("llwrite starting...\n");
   
-  unsigned int uploading = 1, tries = 0;
+  unsigned int uploading = TRUE, tries = 0;
   while (uploading) {
-    //if (tries == 0) {
+    if (tries == 0 || alarm_flag) {
+      timeout = ll->timeout;
+      alarm_flag = FALSE;
+      if(tries >= ll->retries){
+        stop_alarm();
+        printf("Error: Maximum number of tries exceeded.\n");
+        printf("Message not sent.\n");
+        return -1;
+      }
       printf("Sending message..\n");
       send_message(ll, buf, buf_size);
-    //}
+
+      if(++tries == 1)
+        init_alarm(ll);
+    }
 
     message_t *msg = (message_t *)malloc(sizeof(message_t));
     receive_message(ll, msg);
@@ -148,15 +171,15 @@ int llwrite(link_layer_t *ll, char *buf, int buf_size) {
       if (ll->seq_number != msg->nr)
         ll->seq_number = msg->nr;
 
-      uploading = 0;
+      stop_alarm();
+      uploading = FALSE;
     } else if (msg->type == COMMAND && msg->command == REJ) {
       printf("Received REJ.\n");
+      stop_alarm();
       tries = 0;
     }
 
     sleep(1);
-    tries++;
-    
   }
 
   printf("llwrite done.\n");
@@ -207,14 +230,28 @@ int llread(link_layer_t *ll, char **buf) {
 int llclose(link_layer_t *ll) {
   printf("Closing connection...\n");
 
-  unsigned int disconnected = 0, tries = 0;
+  unsigned int disconnected = FALSE, tries = 0;
   switch (ll->ct) {
   case SEND: {
     while (!disconnected) {
+
+      if(tries == 0 || alarm_flag){
+        alarm_flag = FALSE;
+        timeout = ll->timeout;
+        if(tries >= ll->retries){
+          stop_alarm();
+          printf("Error: Maximum number of tries exceeded.\n");
+          printf("Aborting connection...\n");
+          return -1;
+        }
+      }
+      
       // Send DISC
       printf("Sending DISC...\n");
       send_command(ll, DISC);
 
+      if(++tries == 1)
+        init_alarm(ll);
       // Receive DISC
       printf("Waiting for DISC...\n");
       message_t *msg = (message_t *)malloc(sizeof(message_t));
@@ -223,13 +260,12 @@ int llclose(link_layer_t *ll) {
       if (msg->command == DISC) {
         // Send UA
         printf("Received DISC, sending back UA...\n");
+        stop_alarm();
         send_command(ll, UA);
         sleep(1);
-        disconnected = 1;
+        disconnected = TRUE;
         continue;
       }
-
-      tries++;
     }
     break;
   }
@@ -250,12 +286,11 @@ int llclose(link_layer_t *ll) {
         receive_message(ll, msg);
         if (msg->command == UA) {
           printf("Received UA. Done.\n");
-          disconnected = 1;
+          disconnected = TRUE;
           continue;
         }
       }
 
-      tries++;
     }
     break;
   }

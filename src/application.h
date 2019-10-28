@@ -1,5 +1,5 @@
 /**
- * @file config.h
+ * @file application.h
  * @brief The datalink program application layer header file
  *
  * This is the application layer of the project.

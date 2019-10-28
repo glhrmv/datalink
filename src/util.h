@@ -10,6 +10,8 @@
 #include <stdbool.h>
 
 #define BIT(n) (0x01 << n)
+#define TRUE 1
+#define FALSE 0
 
 /**
  * @brief Checks if file exists on system
