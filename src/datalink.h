@@ -21,7 +21,7 @@
 
 typedef enum state { START, FLAG_RCV, A_RCV, C_RCV, BCC_OK, STOP } state_t;
 
-typedef enum command { SET, DISC, UA, RR, REJ } command_t;
+typedef enum command { I, SET, DISC, UA, RR, REJ } command_t;
 
 typedef enum type { COMMAND, DATA, INVALID } type_t;
 

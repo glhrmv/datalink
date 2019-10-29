@@ -87,8 +87,8 @@ int llopen(link_layer_t *ll) {
         timeout = ll->timeout;
         if(tries >= ll->retries){
           stop_alarm();
-          printf("Error: Maximum number of tries exceeded\n");
-          printf("Abosting connection...\n");
+          printf("Error: Maximum number of tries exceeded.\n");
+          printf("Aborting connection...\n");
           return -1;
         }
         // Send SET
@@ -601,7 +601,8 @@ int receive_message(link_layer_t *ll, message_t *msg) {
   }
 
   free(msg_buf);
-
+  printf("Message received!\n");
+  
   return 0;
 }
 
