@@ -340,7 +340,7 @@ int receive_data_packet(link_layer_t *ll, int *n, char **buf, int *length) {
   printf("Received packet: %d\n",packet[1]);
   
   int C = packet[0];
-  *n = (char)packet[1];
+  *n = (unsigned char)packet[1];
   int L2 = packet[2];
   int L1 = packet[3];
 

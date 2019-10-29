@@ -179,7 +179,7 @@ int llwrite(link_layer_t *ll, char *buf, int buf_size) {
       tries = 0;
     }
 
-    sleep(1);
+    //sleep(1);
   }
 
   printf("llwrite done.\n");
