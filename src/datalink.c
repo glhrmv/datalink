@@ -117,6 +117,7 @@ int llopen(link_layer_t *ll) {
 
   case RECEIVE: {
     while (!connected) {
+
       // Receive SET
       printf("Waiting for SET...\n");
       message_t *msg = (message_t *)malloc(sizeof(message_t));
@@ -144,7 +145,7 @@ int llopen(link_layer_t *ll) {
 
 int llwrite(link_layer_t *ll, char *buf, int buf_size) {
   printf("llwrite starting...\n");
-  
+
   unsigned int uploading = TRUE, tries = 0;
   while (uploading) {
     if (tries == 0 || alarm_flag) {
@@ -160,7 +161,7 @@ int llwrite(link_layer_t *ll, char *buf, int buf_size) {
       send_message(ll, buf, buf_size);
 
       if(++tries == 1)
-        init_alarm(ll);
+        init_alarm();
     }
 
     message_t *msg = (message_t *)malloc(sizeof(message_t));
@@ -190,10 +191,25 @@ int llwrite(link_layer_t *ll, char *buf, int buf_size) {
 int llread(link_layer_t *ll, char **buf) {
   printf("llread starting...\n");
 
-  int done = 0;
+  int done = 0, tries = 0;
+
   while (!done) {
+    if (tries == 0 || alarm_flag) {
+      timeout = ll->timeout;
+      alarm_flag = FALSE;
+    }
+    if (tries >= ll->retries) {
+      stop_alarm();
+      printf("Error: Maximum number of tries exceeded.\n");
+      printf("Aborting connection...\n");
+      return -1;
+    }
+
     message_t *msg = (message_t *)malloc(sizeof(message_t));
     receive_message(ll, msg);
+
+    if(++tries == 1)
+      init_alarm();
 
     switch (msg->type) {
     case INVALID:
@@ -202,13 +218,14 @@ int llread(link_layer_t *ll, char **buf) {
         printf("Sending REJ...\n");
         send_command(ll, REJ);
       }
+      stop_alarm();
+      tries = 0;
       break;
     case COMMAND:
       if (msg->command == DISC)
         done = 1;
       break;
     case DATA:
-      if (ll->seq_number == msg->ns) {
         *buf = malloc(msg->data.message_size);
         memcpy(*buf, msg->data.message, msg->data.message_size);
         free(msg->data.message);
@@ -218,9 +235,9 @@ int llread(link_layer_t *ll, char **buf) {
         send_command(ll, RR);
 
         done = 1;
-      }
       break;
     }
+
   }
   printf("llread done.\n");
 
@@ -245,7 +262,7 @@ int llclose(link_layer_t *ll) {
           return -1;
         }
       }
-      
+
       // Send DISC
       printf("Sending DISC...\n");
       send_command(ll, DISC);
@@ -602,7 +619,7 @@ int receive_message(link_layer_t *ll, message_t *msg) {
 
   free(msg_buf);
   printf("Message received!\n");
-  
+
   return 0;
 }
 

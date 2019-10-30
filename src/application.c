@@ -189,14 +189,15 @@ int receive_file(link_layer_t *ll) {
     if (n != 0 && last_n + 1 != n) {
       printf("Received wrong sequence number.\n");
       free(file_buf);
-      return -1;
     }
+    else{
     printf("Rceived data packet.\n");
     fwrite(file_buf, sizeof(char), length, file_created);
     free(file_buf);
 
     file_read_so_far += length;
   }
+}
 
   printf("All file chunks received!\n");
 
