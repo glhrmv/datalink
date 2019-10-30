@@ -200,11 +200,6 @@ int receive_file(link_layer_t *ll) {
 
   printf("All file chunks received!\n");
 
-  if(fclose(file_created) != 0){
-    printf("Error: Closing file created.\n");
-    return -1;
-  }
-
   packet_t *end_packet = (packet_t *)malloc(sizeof(packet_t));
   if (receive_control_packet(ll, end_packet) != 0) {
     printf("Error: End control packet not received\n");
@@ -213,6 +208,16 @@ int receive_file(link_layer_t *ll) {
 
   if (end_packet->type != PACKET_TYPE_END) {
     printf("Error: END control packet not received.\n");
+    return -1;
+  }
+
+  if (packet->file_size != get_file_size(file_created)) {
+    printf("Got WRONG amount of bytes :(\n");
+    return -1;
+  }
+
+  if(fclose(file_created) != 0){
+    printf("Error: Closing file created.\n");
     return -1;
   }
 
@@ -232,7 +237,7 @@ int send_control_packet(link_layer_t *ll, const packet_t *packet) {
 
   // Set packet type
   packet_buf[pos++] = packet->type;
-  
+
 
   // Set file size field
   packet_buf[pos++] = FILE_SIZE_FIELD;
@@ -297,7 +302,7 @@ int receive_control_packet(link_layer_t *ll, packet_t *packet) {
 
 int send_data_packet(link_layer_t *ll, int N, const char *buffer, int length) {
   printf("Creating a data packet to send...\n");
-  
+
   // calculate package size
   unsigned int packet_size = 4 + length;
 
@@ -336,9 +341,9 @@ int receive_data_packet(link_layer_t *ll, int *n, char **buf, int *length) {
     printf("Error reading packet.\n");
     return -1;
   }
-  
-  printf("Received packet: %d\n",packet[1]);
-  
+
+  printf("Received packet: %d\n", (int) packet[1]);
+
   int C = packet[0];
   *n = (unsigned char)packet[1];
   int L2 = packet[2];
@@ -363,7 +368,7 @@ int receive_data_packet(link_layer_t *ll, int *n, char **buf, int *length) {
   free(packet);
 
   printf("Data packet received.\n");
-  
+
   return 0;
 }
 
