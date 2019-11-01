@@ -22,12 +22,12 @@ typedef enum packet_type {
 
 typedef enum packet_field { FILE_SIZE_FIELD, FILE_NAME_FIELD } packet_field_t;
 
-typedef struct packet {
+typedef struct control_packet {
   packet_type_t type;
   char *file_name;
   int file_size;
   char *file_size_buf;
-} packet_t;
+} control_packet_t;
 
 /**
  * @brief Program config struct
@@ -70,8 +70,8 @@ int run(const config_t *config);
 int send_file(link_layer_t *ll, char *file_name);
 int receive_file(link_layer_t *ll);
 
-int send_control_packet(link_layer_t *ll, const packet_t *packet);
-int receive_control_packet(link_layer_t *ll, packet_t *packet);
+int send_control_packet(link_layer_t *ll, const control_packet_t *packet);
+int receive_control_packet(link_layer_t *ll, control_packet_t *packet);
 
 int send_data_packet(link_layer_t *ll, int N, const char *buf, int length);
 int receive_data_packet(link_layer_t *ll, int *N, char **buf, int *length);

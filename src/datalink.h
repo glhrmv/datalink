@@ -66,7 +66,6 @@ typedef struct link_layer {
   int message_data_max_size; ///< Maximum message data size
   unsigned int timeout;      ///< Timeout interval (seconds)
   unsigned int retries; ///< Number of connection attempts in case of failure
-  char frame[MAX_SIZE]; ///< Frame
 
   struct termios old_termios, new_termios; ///< Old and new termio
 } link_layer_t;

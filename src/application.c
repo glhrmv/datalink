@@ -110,8 +110,8 @@ int send_file(link_layer_t *ll, char *file_name) {
 
   // Send START control packet
   // (with file size and name in value field)
-  packet_t *packet = (packet_t *)malloc(sizeof(packet_t));
-  packet->type = PACKET_TYPE_DATA;
+  control_packet_t *packet = (control_packet_t *)malloc(sizeof(control_packet_t));
+  packet->type = PACKET_TYPE_START;
   packet->file_name = file_name;
   packet->file_size = file_size;
   char file_size_buf[sizeof(int) * 3 + 2];
@@ -156,10 +156,15 @@ int send_file(link_layer_t *ll, char *file_name) {
 int receive_file(link_layer_t *ll) {
   // Receive START control packet
   // (with file size and name in value field)
-  packet_t *packet = (packet_t *)malloc(sizeof(packet_t));
+  control_packet_t *packet = (control_packet_t *)malloc(sizeof(control_packet_t));
 
   if (receive_control_packet(ll, packet) != 0) {
     printf("Error: Control packet not received\n");
+    return -1;
+  }
+
+  if(packet->type != PACKET_TYPE_START){
+    printf("Error: START control packet not received...\n");
     return -1;
   }
 
@@ -201,7 +206,7 @@ int receive_file(link_layer_t *ll) {
 
   printf("All file chunks received!\n");
 
-  packet_t *end_packet = (packet_t *)malloc(sizeof(packet_t));
+  control_packet_t *end_packet = (control_packet_t *)malloc(sizeof(control_packet_t));
   if (receive_control_packet(ll, end_packet) != 0) {
     printf("Error: End control packet not received\n");
     return -1;
@@ -226,7 +231,7 @@ int receive_file(link_layer_t *ll) {
   return 0;
 }
 
-int send_control_packet(link_layer_t *ll, const packet_t *packet) {
+int send_control_packet(link_layer_t *ll, const control_packet_t *packet) {
   printf("Creating control packet...\n");
   // Calculate control packet size
   int packet_buf_size =
@@ -261,7 +266,7 @@ int send_control_packet(link_layer_t *ll, const packet_t *packet) {
   return 0;
 }
 
-int receive_control_packet(link_layer_t *ll, packet_t *packet) {
+int receive_control_packet(link_layer_t *ll, control_packet_t *packet) {
   // Receive packet
   char *packet_buf;
   int packet_buf_size = llread(ll, &packet_buf);
