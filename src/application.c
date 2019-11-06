@@ -131,7 +131,7 @@ int send_file(link_layer_t *ll, char *file_name) {
   // Send START control packet
   // (with file size and name in value field)
   control_packet_t *packet = (control_packet_t *)malloc(sizeof(control_packet_t));
-  packet->type = PACKET_TYPE_START;
+  packet->type = PACKET_TYPE_DATA;
   packet->file_name = file_name;
   packet->file_size = file_size;
   char file_size_buf[sizeof(int) * 3 + 2];
@@ -180,11 +180,6 @@ int receive_file(link_layer_t *ll) {
 
   if (receive_control_packet(ll, packet) != 0) {
     printf("Error: Control packet not received\n");
-    return -1;
-  }
-
-  if(packet->type != PACKET_TYPE_START){
-    printf("Error: START control packet not received...\n");
     return -1;
   }
 
