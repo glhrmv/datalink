@@ -15,6 +15,9 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/time.h>
+#include <unistd.h>
+#include <time.h>
 
 #include "application.h"
 
@@ -72,6 +75,11 @@ void set_config(config_t *config, const char **argv) {
 }
 
 int run(const config_t *config) {
+  // Init timer
+  struct timeval start;
+
+  gettimeofday(&start, 0);
+
   // Set the data link layer struct
   link_layer_t *ll = (link_layer_t *)malloc(sizeof(link_layer_t));
   if (set_link_layer(ll, config->port, config->ct) < 0) {
@@ -91,6 +99,18 @@ int run(const config_t *config) {
     if (receive_file(ll) != 0)
       return -1;
   }
+
+  // Stop timer
+  struct timeval end;
+
+  gettimeofday(&end, 0);
+  struct timeval time_spent;
+
+  timersub(&end, &start, &time_spent);
+
+  printf("Transfer duration: %ld.%06ld seconds.\n\n", (long int)time_spent.tv_sec, (long int)time_spent.tv_usec);
+
+  sleep(1);
 
   // Close connection
   return llclose(ll);
@@ -378,6 +398,8 @@ int main(int argc, const char **argv) {
     printf("Usage: %s <send|receive> <serial port device name>\n", argv[0]);
     return 1;
   }
+
+  srand(time(NULL));
 
   // Set the program config struct
   config_t *config = (config_t *)malloc(sizeof(config_t));

@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <string.h>
 
 #include "datalink.h"
 #include "util.h"
@@ -145,7 +146,6 @@ int llopen(link_layer_t *ll) {
 
 int llwrite(link_layer_t *ll, char *buf, int buf_size) {
   printf("llwrite starting...\n");
-
   unsigned int uploading = TRUE, tries = 0;
   while (uploading) {
     if (tries == 0 || alarm_flag) {
@@ -427,7 +427,12 @@ int send_message(link_layer_t *ll, char *msg, unsigned int msg_size) {
   msg_size += MESSAGE_SIZE;
 
   msg_size = stuff_buffer(msg_buf, msg_size);
-  if (write(ll->fd, msg_buf, msg_size) != msg_size) {
+
+  char *msg_copy;
+  msg_copy = BCC1_error_generator(msg_buf, msg_size);
+  msg_copy = BCC2_error_generator(msg_copy, msg_size);
+
+  if (write(ll->fd, msg_copy, msg_size) != msg_size) {
     printf("Could not send message.\n");
     free(msg_buf);
     return 1;
