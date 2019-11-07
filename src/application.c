@@ -108,13 +108,10 @@ int run(const config_t *config) {
 
   timersub(&end, &start, &time_spent);
 
-  printf("Transfer duration: %ld.%06ld seconds.\n\n", (long int)time_spent.tv_sec, (long int)time_spent.tv_usec);
-
-  sleep(1);
-
   // Close connection
   llclose(ll);
 
+  printf("Transfer duration: %ld.%06ld seconds.\n\n", (long int)time_spent.tv_sec, (long int)time_spent.tv_usec);
   printf("Sent: %d\n", ll->stats.sent);
   printf("Sent RR: %d\n", ll->stats.sent_rr);
   printf("Sent REJ: %d\n", ll->stats.sent_rej);

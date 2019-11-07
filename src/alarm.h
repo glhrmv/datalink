@@ -12,6 +12,7 @@
 
 extern int alarm_flag;
 extern int timeout;
+extern int num_timeouts;
 
 void alarm_handler(int signal);
 

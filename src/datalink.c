@@ -332,6 +332,8 @@ int llclose(link_layer_t *ll) {
     return -1;
   }
 
+  ll->stats.timeouts = num_timeouts;
+
   return 0;
 }
 

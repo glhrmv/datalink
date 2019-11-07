@@ -15,6 +15,7 @@
 
 int alarm_flag = FALSE;
 int timeout = 0;
+int num_timeouts = 0;
 
 void alarm_handler(int signal) {
 	if (signal != SIGALRM)
@@ -23,6 +24,7 @@ void alarm_handler(int signal) {
 	alarm_flag = TRUE;
 	printf("Connection time out!\n\nRetrying:\n");
 
+	num_timeouts++;
 	alarm(timeout);
 }
 
