@@ -4,8 +4,6 @@
  *
  */
 
-#include <unistd.h>
-
 #include "util.h"
 
 bool file_exists(const char *file_name) { return access(file_name, F_OK) != -1; }

@@ -7,7 +7,10 @@
 #pragma once
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdbool.h>
+#include <unistd.h>
+#include <string.h>
 
 #define BIT(n) (0x01 << n)
 #define TRUE 1

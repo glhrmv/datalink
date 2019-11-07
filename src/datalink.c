@@ -6,13 +6,13 @@
  *
  */
 #include <fcntl.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <string.h>
 
+#include "alarm.h"
 #include "datalink.h"
 #include "util.h"
-#include "alarm.h"
 
 #define FLAG 0x7E
 #define A 0x03
@@ -42,6 +42,15 @@ int set_link_layer(link_layer_t *ll, char *port, const conn_type_t ct) {
   ll->message_data_max_size = DEFAULT_MSG_MAX_SIZE;
   ll->retries = DEFAULT_RETRIES;
   ll->timeout = DEFAULT_TIMEOUT;
+
+  // Set the stats structure to gather usage data
+  ll->stats.sent = 0;
+  ll->stats.sent_rr = 0;
+  ll->stats.sent_rej = 0;
+  ll->stats.received = 0;
+  ll->stats.received_rr = 0;
+  ll->stats.received_rej = 0;
+  ll->stats.timeouts = 0;
 
   return 0;
 }
@@ -86,7 +95,7 @@ int llopen(link_layer_t *ll) {
       if (tries == 0 || alarm_flag) {
         alarm_flag = FALSE;
         timeout = ll->timeout;
-        if(tries >= ll->retries){
+        if (tries >= ll->retries) {
           stop_alarm();
           printf("Error: Maximum number of tries exceeded.\n");
           printf("Aborting connection...\n");
@@ -96,7 +105,7 @@ int llopen(link_layer_t *ll) {
         printf("Sending SET...\n");
         send_command(ll, SET);
 
-        if(++tries == 1)
+        if (++tries == 1)
           init_alarm(ll);
       }
 
@@ -110,7 +119,6 @@ int llopen(link_layer_t *ll) {
         connected = TRUE;
         break;
       }
-
     }
     stop_alarm();
     break;
@@ -151,7 +159,7 @@ int llwrite(link_layer_t *ll, char *buf, int buf_size) {
     if (tries == 0 || alarm_flag) {
       timeout = ll->timeout;
       alarm_flag = FALSE;
-      if(tries >= ll->retries){
+      if (tries >= ll->retries) {
         stop_alarm();
         printf("Error: Maximum number of tries exceeded.\n");
         printf("Message not sent.\n");
@@ -160,7 +168,7 @@ int llwrite(link_layer_t *ll, char *buf, int buf_size) {
       printf("Sending message..\n");
       send_message(ll, buf, buf_size);
 
-      if(++tries == 1)
+      if (++tries == 1)
         init_alarm();
     }
 
@@ -180,7 +188,7 @@ int llwrite(link_layer_t *ll, char *buf, int buf_size) {
       tries = 0;
     }
 
-    //sleep(1);
+    // sleep(1);
   }
 
   printf("llwrite done.\n");
@@ -208,7 +216,7 @@ int llread(link_layer_t *ll, char **buf) {
     message_t *msg = (message_t *)malloc(sizeof(message_t));
     receive_message(ll, msg);
 
-    if(++tries == 1)
+    if (++tries == 1)
       init_alarm();
 
     switch (msg->type) {
@@ -226,18 +234,17 @@ int llread(link_layer_t *ll, char **buf) {
         done = 1;
       break;
     case DATA:
-        *buf = malloc(msg->data.message_size);
-        memcpy(*buf, msg->data.message, msg->data.message_size);
-        free(msg->data.message);
+      *buf = malloc(msg->data.message_size);
+      memcpy(*buf, msg->data.message, msg->data.message_size);
+      free(msg->data.message);
 
-        ll->seq_number = !msg->ns;
-        printf("Sending RR...\n");
-        send_command(ll, RR);
+      ll->seq_number = !msg->ns;
+      printf("Sending RR...\n");
+      send_command(ll, RR);
 
-        done = 1;
+      done = 1;
       break;
     }
-
   }
   printf("llread done.\n");
 
@@ -252,10 +259,10 @@ int llclose(link_layer_t *ll) {
   case SEND: {
     while (!disconnected) {
 
-      if(tries == 0 || alarm_flag){
+      if (tries == 0 || alarm_flag) {
         alarm_flag = FALSE;
         timeout = ll->timeout;
-        if(tries >= ll->retries){
+        if (tries >= ll->retries) {
           stop_alarm();
           printf("Error: Maximum number of tries exceeded.\n");
           printf("Aborting connection...\n");
@@ -267,7 +274,7 @@ int llclose(link_layer_t *ll) {
       printf("Sending DISC...\n");
       send_command(ll, DISC);
 
-      if(++tries == 1)
+      if (++tries == 1)
         init_alarm(ll);
       // Receive DISC
       printf("Waiting for DISC...\n");
@@ -307,7 +314,6 @@ int llclose(link_layer_t *ll) {
           continue;
         }
       }
-
     }
     break;
   }
@@ -357,6 +363,11 @@ int send_command(link_layer_t *ll, command_t command) {
   }
 
   free(command_buf);
+
+  if (command == REJ)
+    ll->stats.sent_rej++;
+  else if (command == RR)
+    ll->stats.sent_rr++;
 
   printf("Sent command: %s\n", command_str);
 
@@ -413,8 +424,8 @@ char *create_message(link_layer_t *ll, char *msg, unsigned int msg_size) {
   buf[1] = A;
   buf[2] = C;
   buf[3] = A ^ C;
-  for(unsigned int i = 0; i < msg_size; i++)
-    buf[4+i]=msg[i];
+  for (unsigned int i = 0; i < msg_size; i++)
+    buf[4 + i] = msg[i];
   buf[4 + msg_size] = process_bcc(msg, msg_size);
   buf[5 + msg_size] = FLAG;
 
@@ -439,6 +450,9 @@ int send_message(link_layer_t *ll, char *msg, unsigned int msg_size) {
   }
 
   free(msg_buf);
+
+  ll->stats.sent++;
+
   printf("Message sent.\n");
 
   return 0;
@@ -598,6 +612,11 @@ int receive_message(link_layer_t *ll, message_t *msg) {
 
     if (msg->command == RR || msg->command == REJ)
       msg->nr = (cf >> 7) & BIT(0);
+
+    if (msg->command == REJ)
+      ll->stats.received_rej++;
+    else if (msg->command == RR)
+      ll->stats.received_rr++;
   } else if (msg->type == DATA) {
     msg->data.message_size = size - MESSAGE_SIZE;
 
@@ -620,6 +639,8 @@ int receive_message(link_layer_t *ll, message_t *msg) {
     // Copy message
     msg->data.message = malloc(msg->data.message_size);
     memcpy(msg->data.message, &msg_buf[4], msg->data.message_size);
+
+    ll->stats.received++;
   }
 
   free(msg_buf);

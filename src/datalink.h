@@ -54,6 +54,16 @@ typedef struct message {
   unsigned int nr;
 } message_t;
 
+typedef struct stats {
+  int sent;
+  int sent_rr;
+  int sent_rej;
+  int received;
+  int received_rr;
+  int received_rej;
+  int timeouts;
+} stats_t;
+
 /**
  * @brief Link layer structure
  *
@@ -66,6 +76,8 @@ typedef struct link_layer {
   int message_data_max_size; ///< Maximum message data size
   unsigned int timeout;      ///< Timeout interval (seconds)
   unsigned int retries; ///< Number of connection attempts in case of failure
+
+  stats_t stats; ///< Statistics struct
 
   struct termios old_termios, new_termios; ///< Old and new termio
 } link_layer_t;
