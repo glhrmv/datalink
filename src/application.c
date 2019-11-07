@@ -113,7 +113,17 @@ int run(const config_t *config) {
   sleep(1);
 
   // Close connection
-  return llclose(ll);
+  llclose(ll);
+
+  printf("Sent: %d\n", ll->stats.sent);
+  printf("Sent RR: %d\n", ll->stats.sent_rr);
+  printf("Sent REJ: %d\n", ll->stats.sent_rej);
+  printf("Received: %d\n", ll->stats.received);
+  printf("Received RR: %d\n", ll->stats.received_rr);
+  printf("Received REJ: %d\n", ll->stats.received_rej);
+  printf("Timeouts: %d\n", ll->stats.timeouts);
+  
+  return 0;
 }
 
 int send_file(link_layer_t *ll, char *file_name) {
